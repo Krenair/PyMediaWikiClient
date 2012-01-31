@@ -120,7 +120,7 @@ class MediaWikiClient:
         pass
 
     def openSearch(self, search, limit = 10, namespaces = [0]):
-        if 'bots' in self.userInfo['groups'] and len(namespaces) <= 500:
+        if 'bot' in self.userInfo['groups'] and len(namespaces) <= 500:
             return False #Maximum number of values 50 (500 for bots)
         elif len(namespaces) <= 50:
             return False #Maximum number of values 50 (500 for bots)
