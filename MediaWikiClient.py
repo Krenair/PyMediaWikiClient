@@ -106,14 +106,29 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def expandTemplates(self):
-        pass
+    def expandTemplates(self, text, title = 'API', generateXml = False, includeComments = False):
+        values = {'action':'expandtemplates', 'text':text, 'title':title}
+        if generateXml:
+            values['generatexml'] = ''
+
+        if includeComments:
+            values['includecomments'] = ''
+
+        return self.apiRequest(values)
 
     def parse(self):
         pass
 
-    def openSearch(self):
-        pass
+    def openSearch(self, search, limit = 10, namespaces = [0]):
+        if 'bots' in self.userInfo['groups'] and len(namespaces) <= 500:
+            return False #Maximum number of values 50 (500 for bots)
+        elif len(namespaces) <= 50:
+            return False #Maximum number of values 50 (500 for bots)
+        namespaceints = namespaces
+        namespaces = []
+        for namespaceint in namespaceints:
+            namespaces.append(str(namespaceint))
+        return self.apiRequest({'action':'opensearch', 'search':search, 'limit':limit, 'namespace':self.listToString(namespaces)})
 
     def feedContributions(self):
         pass
