@@ -1,3 +1,10 @@
+from StringIO import StringIO
+import datetime
+import gzip
+import json
+import urllib
+import urllib2
+
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
     def __init__(self, apiUrl, userAgent = 'PyMediaWikiClient/0.1'):
@@ -9,11 +16,6 @@ class MediaWikiClient:
 
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
-        from StringIO import StringIO
-        import gzip
-        import json
-        import urllib
-        import urllib2
         values['format'] = 'json'
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
@@ -27,8 +29,13 @@ class MediaWikiClient:
         return json.loads(data)
 
     def listToString(self, list):
+        """Takes a list, outputs it as a pipe-separated string. Each of the list's elements should be convertable to a string."""
         out = ''
         for item in list:
+            try:
+                item = str(item)
+            except:
+                raise Error, 'Item was not able to be converted to a string'
             out += (item + '|')
         return out[:-1]
 
@@ -49,13 +56,13 @@ class MediaWikiClient:
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
                 self.isLoggedIn = True
-                return True
+                return
             else:
                 raise APIError, (result, "tokensent")
         elif result['result'] == 'Success':
             self.getUserInfo()
             self.isLoggedIn = True
-            return True
+            return
         else:
             raise APIError, result
 
@@ -63,7 +70,7 @@ class MediaWikiClient:
         if self.isLoggedIn:
             self.apiRequest({'action':'logout'})
             self.getUserInfo()
-            return True
+            return
         else:
             raise Exception, "Not logged in."
 
@@ -124,14 +131,28 @@ class MediaWikiClient:
             return False #Maximum number of values 50 (500 for bots)
         elif len(namespaces) <= 50:
             return False #Maximum number of values 50 (500 for bots)
-        namespaceints = namespaces
-        namespaces = []
-        for namespaceint in namespaceints:
-            namespaces.append(str(namespaceint))
+
         return self.apiRequest({'action':'opensearch', 'search':search, 'limit':limit, 'namespace':self.listToString(namespaces)})
 
-    def feedContributions(self):
-        pass
+    def feedContributions(self, user, feedFormat = 'rss', namespaces = [0], year = datetime.datetime.now().year, month = datetime.datetime.now().month, tagFilter = [], deletedOnly = False, topOnly = False, showSizeDiff = False):
+        if feedFormat not in ['rss', 'atom']:
+            raise Error, "bad feedFormat: " + feedFormat
+
+        values = {'action':'feedcontributions', 'feedformat':feedFormat, 'user':user, 'namespace':self.listToString(namespaces), 'year':year, 'month':month}
+
+        if tagFilter != []:
+            values['tagfilter'] = self.listToString(tagFilter)
+
+        if deletedOnly:
+            values['deletedonly'] = ''
+
+        if topOnly:
+            values['toponly'] = ''
+
+        if showSizeDiff:
+            values['showsizediff'] = ''
+
+        return self.apiRequest(values)
 
     def feedWatchlist(self):
         pass
@@ -173,7 +194,7 @@ class MediaWikiClient:
         if oldImage == True:
             values['oldimage'] = ''
 
-        result = self.apiRequest(values)
+        return self.apiRequest(values)
 
     def undelete(self):
         pass
@@ -197,13 +218,39 @@ class MediaWikiClient:
 
         if reason != None:
             values['reason'] = reason
-        result = self.apiRequest(values)
+        return self.apiRequest(values)
 
     def unblock(self):
         pass
 
-    def move(self):
-        pass
+    def move(self, to, _from = '', fromid = '', reason = '', movetalk = False, movesubpages = False, noredirect = False):
+        try:
+            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'move', 'titles':'Main Page'})['query']['pages']['1']['movetoken']
+        except KeyError as keyerror:
+            if keyerror.message == 'movetoken':
+                raise APIError, 'You need to log in.'
+            else:
+                raise keyerror
+        values = {'action':'move', 'to':to, 'token':token}
+        if _from != '':
+            values['from'] = _from
+        elif fromid != '':
+            values['fromid'] = fromid
+        else:
+            raise Error, 'You need to specify _from or fromid'
+
+        if reason != '':
+            values['reason'] = reason
+
+        if movetalk:
+            values['movetalk'] = ''
+
+        if movesubpages:
+            values['movesubpages'] = ''
+
+        if noredirect:
+            values['noredirect'] = ''
+        return self.apiRequest(values)
 
     def edit(self):
         pass
@@ -230,7 +277,7 @@ class MediaWikiClient:
         headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
         if reason is not None:
             headers['reason'] = reason
-        result = self.apiRequest({}, headers)
+        return self.apiRequest({}, headers)
 
 class APIError(Exception):
     #Base class for exceptions in this module
