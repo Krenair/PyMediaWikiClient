@@ -35,7 +35,7 @@ class MediaWikiClient:
             try:
                 item = str(item)
             except:
-                raise Error, 'Item was not able to be converted to a string'
+                raise Exception, 'Item was not able to be converted to a string'
             out += (item + '|')
         return out[:-1]
 
@@ -136,7 +136,7 @@ class MediaWikiClient:
 
     def feedContributions(self, user, feedFormat = 'rss', namespaces = [0], year = datetime.datetime.now().year, month = datetime.datetime.now().month, tagFilter = [], deletedOnly = False, topOnly = False, showSizeDiff = False):
         if feedFormat not in ['rss', 'atom']:
-            raise Error, "bad feedFormat: " + feedFormat
+            raise Exception, "bad feedFormat: " + feedFormat
 
         values = {'action':'feedcontributions', 'feedformat':feedFormat, 'user':user, 'namespace':self.listToString(namespaces), 'year':year, 'month':month}
 
@@ -186,7 +186,7 @@ class MediaWikiClient:
         elif pageId != None:
             values['pageid'] = pageId
         else:
-            raise Error, "You must chose a title or a page ID."
+            raise Exception, "You must chose a title or a page ID."
 
         if reason != None:
             values['reason'] = reason
@@ -199,8 +199,37 @@ class MediaWikiClient:
     def undelete(self):
         pass
 
-    def protect(self):
-        pass
+    def protect(self, title, protections = {}, expiries = {}, reason = '', cascade = False):
+        try:
+            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'protect', 'titles':'Main Page'})['query']['pages']['1']['protecttoken']
+        except KeyError as keyerror:
+            if keyerror.message == 'protecttoken':
+                raise APIError, 'You need to log in.'
+
+        values = {'action':'protect', 'title':title, 'token':token}
+
+        if 'edit' not in protections.keys():
+            protections['edit'] = 'all'
+
+        if 'move' not in protections.keys():
+            protections['move'] = 'all'
+
+        if 'edit' not in expiries.keys():
+            expiries['edit'] = 'infinite'
+
+        if 'move' not in expiries.keys():
+            expiries['move'] = 'infinite'
+
+        values['protections'] = 'edit=' + protections['edit'] + '|move=' + protections['move']
+        values['expiry'] = expiries['edit'] + '|' + expiries['move']
+
+        if reason != '':
+            values['reason'] = ''
+
+        if cascade:
+            values['cascade'] = ''
+
+        return self.apiRequest(values)
 
     def block(self, user, reason = None, expiry = "infinite", noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
         values = {'action':'block', 'user':user, 'expiry':expiry}
@@ -227,7 +256,7 @@ class MediaWikiClient:
         elif user != '':
             values['user'] = user
         else:
-            raise Error, 'You need to specify _id or user'
+            raise Exception, 'You need to specify _id or user'
 
         if reason != None:
             values['reason'] = reason
@@ -247,7 +276,7 @@ class MediaWikiClient:
         elif fromid != '':
             values['fromid'] = fromid
         else:
-            raise Error, 'You need to specify _from or fromid'
+            raise Exception, 'You need to specify _from or fromid'
 
         if reason != '':
             values['reason'] = reason
