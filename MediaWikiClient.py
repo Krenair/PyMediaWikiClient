@@ -220,8 +220,18 @@ class MediaWikiClient:
             values['reason'] = reason
         return self.apiRequest(values)
 
-    def unblock(self):
-        pass
+    def unblock(self, _id = 0, user = '', reason = ''):
+        values = {'action':'unblock'}
+        if _id != 0:
+            values['id'] = _id
+        elif user != '':
+            values['user'] = user
+        else:
+            raise Error, 'You need to specify _id or user'
+
+        if reason != None:
+            values['reason'] = reason
+        return self.apiRequest(values)
 
     def move(self, to, _from = '', fromid = '', reason = '', movetalk = False, movesubpages = False, noredirect = False):
         try:
