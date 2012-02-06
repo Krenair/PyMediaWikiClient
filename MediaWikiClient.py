@@ -269,7 +269,7 @@ class MediaWikiClient:
         try:
             values['token'] = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'unblock', 'titles':'Main Page'})['query']['pages']['1']['unblocktoken']
         except KeyError as keyerror:
-            if keyerror.message == 'blocktoken':
+            if keyerror.message == 'unblocktoken':
                 raise APIError, 'You need to log in.'
             else:
                 raise keyerror
