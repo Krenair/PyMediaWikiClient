@@ -232,7 +232,15 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def block(self, user, reason = None, expiry = "infinite", noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
-        values = {'action':'block', 'user':user, 'expiry':expiry}
+        try:
+            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'block', 'titles':'Main Page'})['query']['pages']['1']['blocktoken']
+        except KeyError as keyerror:
+            if keyerror.message == 'blocktoken':
+                raise APIError, 'You need to log in.'
+            else:
+                raise keyerror
+
+        values = {'action':'block', 'user':user, 'expiry':expiry, 'token':token}
         if noCreate == True:
             values['nocreate'] = ''
 
@@ -257,6 +265,14 @@ class MediaWikiClient:
             values['user'] = user
         else:
             raise Exception, 'You need to specify _id or user'
+
+        try:
+            values['token'] = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'unblock', 'titles':'Main Page'})['query']['pages']['1']['unblocktoken']
+        except KeyError as keyerror:
+            if keyerror.message == 'blocktoken':
+                raise APIError, 'You need to log in.'
+            else:
+                raise keyerror
 
         if reason != None:
             values['reason'] = reason
