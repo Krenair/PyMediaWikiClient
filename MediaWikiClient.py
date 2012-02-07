@@ -8,7 +8,21 @@ import urllib2
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
     def __init__(self, apiUrl, userAgent = 'PyMediaWikiClient/0.1'):
-        self.apiUrl = apiUrl
+        if 'http://' not in apiUrl:
+            apiUrl = 'http://' + apiUrl #append http:// if it's not there already
+
+        if 'api.php' in apiUrl:
+            apiUrl = apiUrl
+        elif apiUrl[-1:] == '/':
+            apiUrl = apiUrl + 'api.php'
+        else:
+            apiUrl = apiUrl + '/api.php'
+
+        response = urllib2.urlopen(urllib2.Request(apiUrl))
+        if response.getcode() != 200:
+            raise Exception, 'Response to request for URL ' + request.geturl() + ': ' + response.getcode()
+        else:
+            self.apiUrl = apiUrl
         self.userAgent = userAgent
         self.cookieInfo = None
         self.isLoggedIn = False
