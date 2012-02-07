@@ -169,8 +169,8 @@ class MediaWikiClient:
     def compare(self):
         pass
 
-    def purge(self):
-        pass
+    def purge(self, titles):
+        return self.apiRequest({'action':'purge', 'titles':self.listToString(titles)})
 
     def rollback(self):
         pass
