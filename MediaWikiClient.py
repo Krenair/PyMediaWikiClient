@@ -23,6 +23,7 @@ class MediaWikiClient:
             raise Exception, 'Response to request for URL ' + request.geturl() + ': ' + response.getcode()
         else:
             self.apiUrl = apiUrl
+
         self.userAgent = userAgent
         self.cookieInfo = None
         self.isLoggedIn = False
@@ -70,7 +71,6 @@ class MediaWikiClient:
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
                 self.isLoggedIn = True
-                return
             else:
                 raise APIError, (result, "tokensent")
         elif result['result'] == 'Success':
@@ -84,7 +84,6 @@ class MediaWikiClient:
         if self.isLoggedIn:
             self.apiRequest({'action':'logout'})
             self.getUserInfo()
-            return
         else:
             raise Exception, "Not logged in."
 
@@ -142,9 +141,9 @@ class MediaWikiClient:
 
     def openSearch(self, search, limit = 10, namespaces = [0]):
         if 'bot' in self.userInfo['groups'] and len(namespaces) <= 500:
-            return False #Maximum number of values 50 (500 for bots)
+            raise Exception, 'Maximum number of values 50 (500 for bots)'
         elif len(namespaces) <= 50:
-            return False #Maximum number of values 50 (500 for bots)
+            raise Exception, 'Maximum number of values 50 (500 for bots)'
 
         return self.apiRequest({'action':'opensearch', 'search':search, 'limit':limit, 'namespace':self.listToString(namespaces)})
 
@@ -195,6 +194,7 @@ class MediaWikiClient:
 
         #delete the page
         values = {'action':'delete', 'token':result['query']['pages']['1']['deletetoken']}
+
         if title != None:
             values['title'] = title
         elif pageId != None:
@@ -269,6 +269,7 @@ class MediaWikiClient:
 
         if reason != None:
             values['reason'] = reason
+
         return self.apiRequest(values)
 
     def unblock(self, _id = 0, user = '', reason = ''):
@@ -290,6 +291,7 @@ class MediaWikiClient:
 
         if reason != None:
             values['reason'] = reason
+
         return self.apiRequest(values)
 
     def move(self, to, _from = '', fromid = '', reason = '', movetalk = False, movesubpages = False, noredirect = False):
@@ -300,7 +302,9 @@ class MediaWikiClient:
                 raise APIError, 'You need to log in.'
             else:
                 raise keyerror
+
         values = {'action':'move', 'to':to, 'token':token}
+
         if _from != '':
             values['from'] = _from
         elif fromid != '':
@@ -319,6 +323,7 @@ class MediaWikiClient:
 
         if noredirect:
             values['noredirect'] = ''
+
         return self.apiRequest(values)
 
     def edit(self):
@@ -342,10 +347,11 @@ class MediaWikiClient:
     def userrights(self, user, add = [], remove = [], reason = None):
         values = {'action':'query', 'list':'users', 'ususers':user, 'ustoken':'userrights'}
         token = self.apiRequest(values)['query']['users'][0]['userrightstoken']
-
         headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
+
         if reason is not None:
             headers['reason'] = reason
+
         return self.apiRequest({}, headers)
 
 class APIError(Exception):
