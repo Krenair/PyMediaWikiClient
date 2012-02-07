@@ -171,7 +171,7 @@ class MediaWikiClient:
         pass
 
     def help(self):
-        pass
+        return self.apiRequest({})['error']['*']
 
     def paramInfo(self):
         pass
@@ -338,8 +338,9 @@ class MediaWikiClient:
     def watch(self):
         pass
 
-    def patrol(self):
-        pass
+    def patrol(self, rcid):
+        token = self.apiRequest({'action':'query', 'list':'recentchanges', 'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
+        return self.apiRequest({'action':'patrol', 'rcid':rcid, 'token':token})
 
     def _import(self):
         pass
