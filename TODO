@@ -1,0 +1,21 @@
+Add:
+	edit
+	parse
+	import
+	rsd
+	upload
+
+Add some methods to allow a better way of interacting with the query method
+
+Make these methods use the query method instead of using action=query with apiRequest:
+	rollback
+	delete
+	unDelete
+	protect
+	block
+	unBlock
+	move
+	fileRevert
+	watch
+	patrol
+	userRights
