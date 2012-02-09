@@ -2,12 +2,13 @@ from StringIO import StringIO
 import datetime
 import gzip
 import json
+import os
 import urllib
 import urllib2
 
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
-    def __init__(self, apiUrl, userAgent = 'PyMediaWikiClient/0.1'):
+    def __init__(self, apiUrl, userAgent = ''):
         if 'http://' not in apiUrl:
             apiUrl = 'http://' + apiUrl #append http:// if it's not there already
 
@@ -23,6 +24,11 @@ class MediaWikiClient:
             raise Exception, 'Response to request for URL ' + request.geturl() + ': ' + response.getcode()
         else:
             self.apiUrl = apiUrl
+
+        if userAgent == '':
+            pipe = os.popen('git log --pretty=format:"%H"')
+            userAgent = 'PyMediaWikiClient/git/' + pipe.readline().strip()
+            pipe.close()
 
         self.userAgent = userAgent
         self.cookieInfo = None
