@@ -171,15 +171,32 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def feedWatchlist(self):
-        pass
+    def feedWatchList(self, watchListOwner, format = 'rss', hours = 24, allRevisions = False, watchListToken = '', linkToDiffs = False):
+        if format.lower() not in ['rss', 'atom']:
+            raise Exception, 'Format must be RSS or atom'
+
+        if int(hours) < 1 or int(hours) > 72:
+            raise Exception, 'Hours must be between 1 and 72'
+
+        values = {'action':'feedwatchlist', 'watchlistowner':watchListOwner, 'format':format, 'hours':hours}
+
+        if allRevisions:
+            values['allrev'] = ''
+
+        if watchListToken != '':
+            values['watchlisttoken'] = watchListToken
+
+        if linkToDiffs:
+            values['linktodiffs'] = ''
+
+        return self.apiRequest(values)
 
     def help(self):
         return self.apiRequest({})['error']['*']
 
     def paramInfo(self, modules = [], queryModules = [], mainModule = False, pageSetModule = False):
         if modules == [] and queryModules == [] and not mainModule and not pageSetModule:
-            raise Error, 'You must choose at least one parameter to use'
+            raise Exception, 'You must choose at least one parameter to use'
 
         values = {'action':'paraminfo'}
 
@@ -206,8 +223,18 @@ class MediaWikiClient:
     def purge(self, titles):
         return self.apiRequest({'action':'purge', 'titles':self.listToString(titles)})
 
-    def rollback(self):
-        pass
+    def rollback(self, title, user, summary = '', markBot = False):
+        token = self.apiRequest({'action':'query', 'prop':'revisions', 'rvtoken':'rollback', 'titles':title})['query']['pages'].items()[0][1]['revisions'][0]['rollbacktoken']
+
+        values = {'action':'rollback', 'title':title, 'token':token, 'user':user}
+
+        if summary != '':
+            values['summary'] = summary
+
+        if markBot:
+            values['markbot'] = ''
+
+        return self.apiRequest(values)
 
     def delete(self, title = None, pageId = None, reason = None, oldImage = None):
         #get a delete token
@@ -357,7 +384,8 @@ class MediaWikiClient:
         pass
 
     def watch(self, title, unWatch = False):
-        values = {'action':'watch', 'title':title}
+        token = self.apiRequest({'action':'query', 'prop':'info', 'titles':'Main Page', 'intoken':'watch'})['query']['pages']['1']['watchtoken']
+        values = {'action':'watch', 'title':title, 'token':token}
 
         if unWatch:
             values['unwatch'] = ''
