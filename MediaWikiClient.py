@@ -335,8 +335,13 @@ class MediaWikiClient:
     def filerevert(self):
         pass
 
-    def watch(self):
-        pass
+    def watch(self, title, unwatch = False):
+        values = {'action':'watch', 'title':title}
+
+        if unwatch:
+            values['unwatch'] = ''
+
+        return self.apiRequest(values)
 
     def patrol(self, rcid):
         token = self.apiRequest({'action':'query', 'list':'recentchanges', 'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
