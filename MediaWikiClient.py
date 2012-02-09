@@ -268,8 +268,15 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def unDelete(self):
-        pass
+    def unDelete(self, title, reason = '', timestamps = [], watchList = 'preferences'):
+        token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'edit', 'titles':'Main Page'})['query']['pages']['1']['edittoken']
+
+        values = {'action':'undelete', 'title':title, 'reason':reason, 'watchlist':watchList, 'token':token}
+
+        if timestamps != []:
+            values['timestamps'] = self.listToString(timestamps)
+
+        return self.apiRequest(values)
 
     def protect(self, title, protections = {}, expiries = {}, reason = '', cascade = False):
         try:
