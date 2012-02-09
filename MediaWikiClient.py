@@ -45,6 +45,9 @@ class MediaWikiClient:
 
     def listToString(self, list):
         """Takes a list, outputs it as a pipe-separated string. Each of the list's elements should be convertable to a string."""
+        if list.__class__ == str:
+            return list
+
         out = ''
         for item in list:
             try:
@@ -52,6 +55,7 @@ class MediaWikiClient:
             except:
                 raise Exception, 'Item was not able to be converted to a string'
             out += (item + '|')
+
         return out[:-1]
 
     def getUserInfo(self):
