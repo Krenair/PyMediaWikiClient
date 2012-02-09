@@ -173,8 +173,25 @@ class MediaWikiClient:
     def help(self):
         return self.apiRequest({})['error']['*']
 
-    def paramInfo(self):
-        pass
+    def paramInfo(self, modules = [], queryModules = [], mainModule = False, pageSetModule = False):
+        if modules == [] and queryModules == [] and not mainModule and not pageSetModule:
+            raise Error, 'You must choose at least one parameter to use'
+
+        values = {'action':'paraminfo'}
+
+        if modules is not []:
+            values['modules'] = self.listToString(modules)
+
+        if queryModules is not []:
+            values['querymodules'] = self.listToString(queryModules)
+
+        if mainModule:
+            values['mainmodule'] = ''
+
+        if pageSetModule:
+            values['pagesetmodule'] = ''
+
+        return self.apiRequest(values)
 
     def rsd(self):
         pass
