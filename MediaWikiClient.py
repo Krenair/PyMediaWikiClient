@@ -390,8 +390,15 @@ class MediaWikiClient:
     def upload(self):
         pass
 
-    def fileRevert(self):
-        pass
+    def fileRevert(self, fileName, comment = ''):
+        token = self.apiRequest({'action':'query', 'prop':'info', 'titles':'Main Page', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+        archiveName = self.apiRequest({'action':'query', 'prop':'imageinfo', 'titles':'File:' + fileName, 'iiprop':'archivename', 'iilimit':2})['query']['pages'].items()[0][1]['imageinfo'][1]['archivename']
+        values = {'action':'filerevert', 'filename':fileName, 'archivename':archiveName, 'token':token}
+
+        if comment != '':
+            values['comment'] = comment
+
+        return self.apiRequest(values)
 
     def watch(self, title, unWatch = False):
         token = self.apiRequest({'action':'query', 'prop':'info', 'titles':'Main Page', 'intoken':'watch'})['query']['pages']['1']['watchtoken']
