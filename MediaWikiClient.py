@@ -41,7 +41,11 @@ class MediaWikiClient:
             data = gzip.GzipFile(fileobj=StringIO(response.read())).read()
         else:
             data = response.read()
-        return json.loads(data)
+        try:
+            return json.loads(data)
+        except ValueError as valueerror:
+            if valueerror.message == 'No JSON object could be decoded':
+                return data
 
     def listToString(self, list):
         """Takes a list, outputs it as a pipe-separated string. Each of the list's elements should be convertable to a string."""
@@ -178,7 +182,7 @@ class MediaWikiClient:
         if int(hours) < 1 or int(hours) > 72:
             raise Exception, 'Hours must be between 1 and 72'
 
-        values = {'action':'feedwatchlist', 'watchlistowner':watchListOwner, 'format':format, 'hours':hours}
+        values = {'action':'feedwatchlist', 'watchlistowner':watchListOwner, 'feedformat':format, 'hours':hours}
 
         if allRevisions:
             values['allrev'] = ''
@@ -258,7 +262,7 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def undelete(self):
+    def unDelete(self):
         pass
 
     def protect(self, title, protections = {}, expiries = {}, reason = '', cascade = False):
@@ -320,7 +324,7 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def unblock(self, _id = 0, user = '', reason = ''):
+    def unBlock(self, _id = 0, user = '', reason = ''):
         values = {'action':'unblock'}
         if _id != 0:
             values['id'] = _id
@@ -380,7 +384,7 @@ class MediaWikiClient:
     def upload(self):
         pass
 
-    def filerevert(self):
+    def fileRevert(self):
         pass
 
     def watch(self, title, unWatch = False):
@@ -399,7 +403,7 @@ class MediaWikiClient:
     def _import(self):
         pass
 
-    def userrights(self, user, add = [], remove = [], reason = None):
+    def userRights(self, user, add = [], remove = [], reason = None):
         values = {'action':'query', 'list':'users', 'ususers':user, 'ustoken':'userrights'}
         token = self.apiRequest(values)['query']['users'][0]['userrightstoken']
         headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
