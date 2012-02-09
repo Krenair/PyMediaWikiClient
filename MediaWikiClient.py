@@ -179,8 +179,8 @@ class MediaWikiClient:
     def rsd(self):
         pass
 
-    def compare(self):
-        pass
+    def compare(self, fromTitle, fromRevision, toTitle, toRevision):
+        return self.apiRequest({'action':'compare', 'fromtitle':fromTitle, 'fromrev':'fromRevision', 'totitle':toTitle, 'torev':toRevision})
 
     def purge(self, titles):
         return self.apiRequest({'action':'purge', 'titles':self.listToString(titles)})
@@ -335,10 +335,10 @@ class MediaWikiClient:
     def filerevert(self):
         pass
 
-    def watch(self, title, unwatch = False):
+    def watch(self, title, unWatch = False):
         values = {'action':'watch', 'title':title}
 
-        if unwatch:
+        if unWatch:
             values['unwatch'] = ''
 
         return self.apiRequest(values)
