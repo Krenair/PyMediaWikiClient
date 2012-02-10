@@ -236,7 +236,7 @@ class MediaWikiClient:
 
     def rollback(self, title, user, summary = '', markBot = False):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'revisions', 'rvtoken':'rollback', 'titles':title})['query']['pages'].items()[0][1]['revisions'][0]['rollbacktoken']
+            token = self.query(titles = title, extraParams = {'prop':'revisions', 'rvtoken':'rollback'})['query']['pages'].items()[0][1]['revisions'][0]['rollbacktoken']
         except KeyError as keyError:
             if keyError.message == 'rollbacktoken':
                 raise APIError, 'You need to log in.'
@@ -256,7 +256,7 @@ class MediaWikiClient:
     def delete(self, title = None, pageId = None, reason = None, oldImage = None):
         #get a delete token
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'delete', 'titles':'Main Page'})['query']['pages']['1']['deletetoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'delete'})['query']['pages']['1']['deletetoken']
         except KeyError as keyError:
             if keyError.message == 'deletetoken':
                 raise APIError, 'You need to log in.'
@@ -283,7 +283,7 @@ class MediaWikiClient:
 
     def unDelete(self, title, reason = '', timestamps = [], watchList = 'preferences'):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'edit', 'titles':'Main Page'})['query']['pages']['1']['edittoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
         except KeyError as keyError:
             if keyError.message == 'edittoken':
                 raise APIError, 'You need to log in.'
@@ -298,7 +298,7 @@ class MediaWikiClient:
 
     def protect(self, title, protections = {}, expiries = {}, reason = '', cascade = False):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'protect', 'titles':'Main Page'})['query']['pages']['1']['protecttoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'protect'})['query']['pages']['1']['protecttoken']
         except KeyError as keyError:
             if keyError.message == 'protecttoken':
                 raise APIError, 'You need to log in.'
@@ -330,7 +330,7 @@ class MediaWikiClient:
 
     def block(self, user, reason = None, expiry = "infinite", noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'block', 'titles':'Main Page'})['query']['pages']['1']['blocktoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'block'})['query']['pages']['1']['blocktoken']
         except KeyError as keyError:
             if keyError.message == 'blocktoken':
                 raise APIError, 'You need to log in.'
@@ -365,7 +365,7 @@ class MediaWikiClient:
             raise Exception, 'You need to specify _id or user'
 
         try:
-            values['token'] = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'unblock', 'titles':'Main Page'})['query']['pages']['1']['unblocktoken']
+            values['token'] = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'unblock'})['query']['pages']['1']['unblocktoken']
         except KeyError as keyError:
             if keyError.message == 'unblocktoken':
                 raise APIError, 'You need to log in.'
@@ -379,7 +379,7 @@ class MediaWikiClient:
 
     def move(self, to, _from = '', fromid = '', reason = '', movetalk = False, movesubpages = False, noredirect = False):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'intoken':'move', 'titles':'Main Page'})['query']['pages']['1']['movetoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'move'})['query']['pages']['1']['movetoken']
         except KeyError as keyError:
             if keyError.message == 'movetoken':
                 raise APIError, 'You need to log in.'
@@ -417,13 +417,13 @@ class MediaWikiClient:
 
     def fileRevert(self, fileName, comment = ''):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'titles':'Main Page', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
         except KeyError as keyError:
             if keyError.message == 'edittoken':
                 raise APIError, 'You need to log in.'
             else:
                 raise keyError
-        archiveName = self.apiRequest({'action':'query', 'prop':'imageinfo', 'titles':'File:' + fileName, 'iiprop':'archivename', 'iilimit':2})['query']['pages'].items()[0][1]['imageinfo'][1]['archivename']
+        archiveName = self.query(titles = 'File:' + fileName, extraParams = {'prop':'imageinfo', 'iiprop':'archivename', 'iilimit':2})['query']['pages'].items()[0][1]['imageinfo'][1]['archivename']
         values = {'action':'filerevert', 'filename':fileName, 'archivename':archiveName, 'token':token}
 
         if comment != '':
@@ -433,7 +433,7 @@ class MediaWikiClient:
 
     def watch(self, title, unWatch = False):
         try:
-            token = self.apiRequest({'action':'query', 'prop':'info', 'titles':'Main Page', 'intoken':'watch'})['query']['pages']['1']['watchtoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'watch'})['query']['pages']['1']['watchtoken']
         except KeyError as keyError:
             if keyError.message == 'watchtoken':
                 raise APIError, 'You need to log in.'
@@ -448,7 +448,7 @@ class MediaWikiClient:
 
     def patrol(self, rcid):
         try:
-            token = self.apiRequest({'action':'query', 'list':'recentchanges', 'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
+            token = self.query(list = 'recentchanges', extraParams = {'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
         except KeyError as keyError:
             if keyError.message == 'patroltoken':
                 raise APIError, 'You may not patrol.'
@@ -460,8 +460,7 @@ class MediaWikiClient:
         pass
 
     def userRights(self, user, add = [], remove = [], reason = None):
-        values = {'action':'query', 'list':'users', 'ususers':user, 'ustoken':'userrights'}
-        token = self.apiRequest(values)['query']['users'][0]['userrightstoken']
+        token = self.query(list = 'users', extraParams = {'ususers':user, 'ustoken':'userrights'})['query']['users'][0]['userrightstoken']
         headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
 
         if reason is not None:
