@@ -108,6 +108,7 @@ class MediaWikiClient:
             raise Exception, 'Not logged in.'
 
     def query(self, titles = [], pageIds = [], revIds = [], list = [], meta = [], generator = '', redirects = True, convertTitles = False, indexPageIds = False, export = False, exportNoWrap = False, iwUrl = False, extraParams = {}):
+        #TODO: Add some methods to allow a better way of interacting with the query module.
         values = {'action':'query'}
         if titles != []:
             values['titles'] = self.listToString(titles)
@@ -170,8 +171,42 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def parse(self):
-        pass
+    def parse(self, title = 'API', text = '', summary = '', page = '', pageId = '', redirects = False, oldId = None, prop = 'text|langlinks|categories|links|templates|images|externallinks|sections|revid|displaytitle', pst = False, onlyPst = False, useLang = None, section = '', disablePP = False):
+        values = {'action':'parse', 'title':title, 'text':text, 'summary':summary, 'prop':self.listToString(prop)}
+
+        if page != '':
+            values['page'] = page
+            del values['text'], values['title']
+
+        if pageId != '':
+            values['pageid'] = pageId
+            try:
+                del values['text'], values['title']
+            except KeyError as keyError:
+                pass
+
+        if redirects:
+            values['redirects'] = ''
+
+        if oldId != None:
+            values['oldid'] = oldId
+
+        if pst:
+            values['pst'] = ''
+
+        if onlyPst:
+            values['onlypst'] = ''
+
+        if useLang != None:
+            values['uselang'] = useLang
+
+        if section != '':
+            values['section'] = section
+
+        if disablePP:
+            values['disablepp'] = ''
+
+        return self.apiRequest(values)
 
     def openSearch(self, search, limit = 10, namespaces = [0]):
         if 'bot' in self.userInfo['groups'] and len(namespaces) <= 500:
