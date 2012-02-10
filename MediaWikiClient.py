@@ -289,6 +289,7 @@ class MediaWikiClient:
                 raise APIError, 'You need to log in.'
             else:
                 raise keyError
+
         values = {'action':'undelete', 'title':title, 'reason':reason, 'watchlist':watchList, 'token':token}
 
         if timestamps != []:
@@ -302,6 +303,8 @@ class MediaWikiClient:
         except KeyError as keyError:
             if keyError.message == 'protecttoken':
                 raise APIError, 'You need to log in.'
+            else:
+                raise keyError
 
         values = {'action':'protect', 'title':title, 'token':token}
 
@@ -423,6 +426,7 @@ class MediaWikiClient:
                 raise APIError, 'You need to log in.'
             else:
                 raise keyError
+
         archiveName = self.query(titles = 'File:' + fileName, extraParams = {'prop':'imageinfo', 'iiprop':'archivename', 'iilimit':2})['query']['pages'].items()[0][1]['imageinfo'][1]['archivename']
         values = {'action':'filerevert', 'filename':fileName, 'archivename':archiveName, 'token':token}
 
@@ -439,6 +443,7 @@ class MediaWikiClient:
                 raise APIError, 'You need to log in.'
             else:
                 raise keyError
+
         values = {'action':'watch', 'title':title, 'token':token}
 
         if unWatch:
@@ -454,13 +459,21 @@ class MediaWikiClient:
                 raise APIError, 'You may not patrol.'
             else:
                 raise keyError
+
         return self.apiRequest({'action':'patrol', 'rcid':rcid, 'token':token})
 
     def _import(self):
         pass
 
     def userRights(self, user, add = [], remove = [], reason = None):
-        token = self.query(list = 'users', extraParams = {'ususers':user, 'ustoken':'userrights'})['query']['users'][0]['userrightstoken']
+        try:
+            token = self.query(list = 'users', extraParams = {'ususers':user, 'ustoken':'userrights'})['query']['users'][0]['userrightstoken']
+        except KeyError as keyError:
+            if keyError.message == 'userrightstoken':
+                raise APIError, 'You may not change user rights.'
+            else:
+                raise keyError
+
         headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
 
         if reason is not None:
