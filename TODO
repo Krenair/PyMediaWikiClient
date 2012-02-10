@@ -1,7 +1,6 @@
 Add:
-	edit
-	parse
 	import
-	rsd
 	upload
+	parse
+	edit
 Add some methods to allow a better way of interacting with the query module

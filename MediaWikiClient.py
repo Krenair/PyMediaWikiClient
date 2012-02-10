@@ -226,7 +226,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def rsd(self):
-        pass
+        return self.apiRequest({'action':'rsd'})
 
     def compare(self, fromTitle, fromRevision, toTitle, toRevision):
         return self.apiRequest({'action':'compare', 'fromtitle':fromTitle, 'fromrev':'fromRevision', 'totitle':toTitle, 'torev':toRevision})
