@@ -142,6 +142,15 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
+    def getEditToken(self):
+        try:
+            return self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+        except KeyError as keyError:
+            if keyError.message == 'edittoken':
+                raise APIError, 'You may not edit.'
+            else:
+                raise keyError
+
     def expandTemplates(self, text, title = 'API', generateXml = False, includeComments = False):
         values = {'action':'expandtemplates', 'text':text, 'title':title}
         if generateXml:
@@ -240,7 +249,7 @@ class MediaWikiClient:
             token = self.query(titles = title, extraParams = {'prop':'revisions', 'rvtoken':'rollback'})['query']['pages'].items()[0][1]['revisions'][0]['rollbacktoken']
         except KeyError as keyError:
             if keyError.message == 'rollbacktoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not rollback.'
             else:
                 raise keyError
 
@@ -260,7 +269,7 @@ class MediaWikiClient:
             token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'delete'})['query']['pages']['1']['deletetoken']
         except KeyError as keyError:
             if keyError.message == 'deletetoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not delete.'
             else:
                 raise keyError
 
@@ -283,15 +292,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def unDelete(self, title, reason = '', timestamps = [], watchList = 'preferences'):
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
-        except KeyError as keyError:
-            if keyError.message == 'edittoken':
-                raise APIError, 'You need to log in.'
-            else:
-                raise keyError
-
-        values = {'action':'undelete', 'title':title, 'reason':reason, 'watchlist':watchList, 'token':token}
+        values = {'action':'undelete', 'title':title, 'reason':reason, 'watchlist':watchList, 'token':self.getEditToken()}
 
         if timestamps != []:
             values['timestamps'] = self.listToString(timestamps)
@@ -303,7 +304,7 @@ class MediaWikiClient:
             token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'protect'})['query']['pages']['1']['protecttoken']
         except KeyError as keyError:
             if keyError.message == 'protecttoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not protect.'
             else:
                 raise keyError
 
@@ -337,7 +338,7 @@ class MediaWikiClient:
             token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'block'})['query']['pages']['1']['blocktoken']
         except KeyError as keyError:
             if keyError.message == 'blocktoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not block.'
             else:
                 raise keyError
 
@@ -372,7 +373,7 @@ class MediaWikiClient:
             values['token'] = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'unblock'})['query']['pages']['1']['unblocktoken']
         except KeyError as keyError:
             if keyError.message == 'unblocktoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not unblock.'
             else:
                 raise keyError
 
@@ -386,7 +387,7 @@ class MediaWikiClient:
             token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'move'})['query']['pages']['1']['movetoken']
         except KeyError as keyError:
             if keyError.message == 'movetoken':
-                raise APIError, 'You need to log in.'
+                raise APIError, 'You may not move.'
             else:
                 raise keyError
 
@@ -417,15 +418,7 @@ class MediaWikiClient:
         if watchList not in ['watch', 'unwatch', 'preferences', 'nochange']:
             raise Exception, 'watchList must be watch, unwatch, preferences or nochange.'
 
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
-        except KeyError as keyError:
-            if keyError.message == 'edittoken':
-                raise APIError, 'You need to log in.'
-            else:
-                raise keyError
-
-        values = {'action':'edit', 'title':title, 'text':text, 'watchlist':watchList, 'token':token}
+        values = {'action':'edit', 'title':title, 'text':text, 'watchlist':watchList, 'token':self.getEditToken()}
 
         if section != None:
             values['section'] = section
@@ -475,15 +468,7 @@ class MediaWikiClient:
 
     def upload(self, fileName, comment, url, text = '', watch = False, ignoreWarnings = False, sessionKey = None, asyncDownload = False):
         """Currently restricted to URLs only. See https://github.com/Krenair/PyMediaWikiClient/issues/1"""
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
-        except KeyError as keyError:
-            if keyError.message == 'edittoken':
-                raise APIError, 'You need to log in.'
-            else:
-                raise keyError
-
-        values = {'action':'upload', 'filename':fileName, 'comment':comment, 'url':url, 'token':token}
+        values = {'action':'upload', 'filename':fileName, 'comment':comment, 'url':url, 'token':self.getEditToken()}
 
         if text != '':
             values['text'] = text
@@ -503,16 +488,8 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def fileRevert(self, fileName, comment = ''):
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
-        except KeyError as keyError:
-            if keyError.message == 'edittoken':
-                raise APIError, 'You need to log in.'
-            else:
-                raise keyError
-
         archiveName = self.query(titles = 'File:' + fileName, extraParams = {'prop':'imageinfo', 'iiprop':'archivename', 'iilimit':2})['query']['pages'].items()[0][1]['imageinfo'][1]['archivename']
-        values = {'action':'filerevert', 'filename':fileName, 'archivename':archiveName, 'token':token}
+        values = {'action':'filerevert', 'filename':fileName, 'archivename':archiveName, 'token':self.getEditToken()}
 
         if comment != '':
             values['comment'] = comment
