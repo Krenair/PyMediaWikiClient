@@ -1,6 +1,2 @@
-Add:
-	import
-	upload
-	parse
-	edit
-Add some methods to allow a better way of interacting with the query module
+Add parse and edit.
+Add some methods to allow a better way of interacting with the query module.

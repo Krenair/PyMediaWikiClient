@@ -415,8 +415,34 @@ class MediaWikiClient:
     def edit(self):
         pass
 
-    def upload(self):
-        pass
+    def upload(self, fileName, comment, url, text = '', watch = False, ignoreWarnings = False, sessionKey = None, asyncDownload = False):
+        """Currently restricted to URLs only. See https://github.com/Krenair/PyMediaWikiClient/issues/1"""
+        try:
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+        except KeyError as keyError:
+            if keyError.message == 'edittoken':
+                raise APIError, 'You need to log in.'
+            else:
+                raise keyError
+
+        values = {'action':'upload', 'filename':fileName, 'comment':comment, 'url':url, 'token':token}
+
+        if text != '':
+            values['text'] = text
+
+        if watch:
+            values['watch'] = ''
+
+        if ignoreWarnings:
+            values['ignorewarnings'] = ''
+
+        if sessionKey != None:
+            values['sessionkey'] = sessionKey
+
+        if asyncDownload:
+            values['asyncdownload'] = ''
+
+        return self.apiRequest(values)
 
     def fileRevert(self, fileName, comment = ''):
         try:
@@ -463,6 +489,7 @@ class MediaWikiClient:
         return self.apiRequest({'action':'patrol', 'rcid':rcid, 'token':token})
 
     def _import(self):
+        """See https://github.com/Krenair/PyMediaWikiClient/issues/1"""
         pass
 
     def userRights(self, user, add = [], remove = [], reason = None):
