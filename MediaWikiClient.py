@@ -490,7 +490,7 @@ class MediaWikiClient:
 
     def _import(self):
         """See https://github.com/Krenair/PyMediaWikiClient/issues/1"""
-        pass
+        raise Exception, self._import.__doc__
 
     def userRights(self, user, add = [], remove = [], reason = None):
         try:
