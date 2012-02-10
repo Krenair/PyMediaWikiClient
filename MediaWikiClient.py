@@ -1,6 +1,7 @@
 from StringIO import StringIO
 import datetime
 import gzip
+import hashlib
 import json
 import os
 import urllib
@@ -412,8 +413,65 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def edit(self):
-        pass
+    def edit(self, title, text, section = None, summary = '', minor = False, notMinor = False, bot = False, baseTimestamp = None, startTimestamp = None, recreate = False, createOnly = False, noCreate = False, watchList = 'preferences', md5 = '', captchaId = None, captchaWord = None, undo = '', undoAfter = False):
+        if watchList not in ['watch', 'unwatch', 'preferences', 'nochange']:
+            raise Exception, 'watchList must be watch, unwatch, preferences or nochange.'
+
+        try:
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+        except KeyError as keyError:
+            if keyError.message == 'edittoken':
+                raise APIError, 'You need to log in.'
+            else:
+                raise keyError
+
+        values = {'action':'edit', 'title':title, 'text':text, 'watchlist':watchList, 'token':token}
+
+        if section != None:
+            values['section'] = section
+
+        if minor:
+            values['minor'] = ''
+
+        if notMinor:
+            values['notminor'] = ''
+
+        if bot:
+            values['bot'] = ''
+
+        if baseTimestamp != None:
+            values['basetimestamp'] = baseTimestamp
+
+        if startTimestamp != None:
+            values['starttimestamp'] = startTimestamp
+
+        if recreate:
+            values['recreate'] = ''
+
+        if createOnly:
+            values['createonly'] = ''
+
+        if noCreate:
+            values['nocreate'] = ''
+
+        if md5 == '':
+            values['md5'] = hashlib.md5(text).hexdigest()
+        else:
+            values['md5'] = md5
+
+        if captchaId != None:
+            values['captchaid'] = captchaId
+
+        if captchaWord != None:
+            values['captchaword'] = captchaWord
+
+        if undo != '':
+            values['undo'] = undo
+
+        if undoAfter:
+            values['undoafter'] = ''
+
+        return self.apiRequest(values)
 
     def upload(self, fileName, comment, url, text = '', watch = False, ignoreWarnings = False, sessionKey = None, asyncDownload = False):
         """Currently restricted to URLs only. See https://github.com/Krenair/PyMediaWikiClient/issues/1"""
