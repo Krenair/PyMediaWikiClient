@@ -35,6 +35,7 @@ class MediaWikiClient:
         self.cookieInfo = None
         self.isLoggedIn = False
         self.getUserInfo()
+        self.getEditToken(cached = False)
 
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
@@ -86,11 +87,13 @@ class MediaWikiClient:
             result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password, 'format':'json', 'lgtoken':result['login']['token']})
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
+                self.getEditToken(cached = False)
                 self.isLoggedIn = True
             else:
-                raise APIError, (result, "tokensent")
+                raise APIError, (result, 'tokensent')
         elif result['result'] == 'Success':
             self.getUserInfo()
+            self.getEditToken(cached = False)
             self.isLoggedIn = True
             return
         else:
@@ -100,8 +103,9 @@ class MediaWikiClient:
         if self.isLoggedIn:
             self.apiRequest({'action':'logout'})
             self.getUserInfo()
+            self.getEditToken(cached = False)
         else:
-            raise Exception, "Not logged in."
+            raise Exception, 'Not logged in.'
 
     def query(self, titles = [], pageIds = [], revIds = [], list = [], meta = [], generator = '', redirects = True, convertTitles = False, indexPageIds = False, export = False, exportNoWrap = False, iwUrl = False, extraParams = {}):
         values = {'action':'query'}
@@ -142,9 +146,14 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def getEditToken(self):
+    def getEditToken(self, cached = True):
+        """Gets your edit token."""
+        if 'editToken' in dir(self) and cached:
+            return self.editToken
+
         try:
-            return self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+            self.editToken = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+            return self.editToken
         except KeyError as keyError:
             if keyError.message == 'edittoken':
                 raise APIError, 'You may not edit.'
@@ -174,7 +183,7 @@ class MediaWikiClient:
 
     def feedContributions(self, user, feedFormat = 'rss', namespaces = [0], year = datetime.datetime.now().year, month = datetime.datetime.now().month, tagFilter = [], deletedOnly = False, topOnly = False, showSizeDiff = False):
         if feedFormat not in ['rss', 'atom']:
-            raise Exception, "bad feedFormat: " + feedFormat
+            raise Exception, 'Bad feedFormat: ' + feedFormat
 
         values = {'action':'feedcontributions', 'feedformat':feedFormat, 'user':user, 'namespace':self.listToString(namespaces), 'year':year, 'month':month}
 
@@ -281,7 +290,7 @@ class MediaWikiClient:
         elif pageId != None:
             values['pageid'] = pageId
         else:
-            raise Exception, "You must chose a title or a page ID."
+            raise Exception, 'You must chose a title or a page ID.'
 
         if reason != None:
             values['reason'] = reason
@@ -333,7 +342,7 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def block(self, user, reason = None, expiry = "infinite", noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
+    def block(self, user, reason = None, expiry = 'infinite', noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
         try:
             token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'block'})['query']['pages']['1']['blocktoken']
         except KeyError as keyError:
