@@ -308,17 +308,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def delete(self, title = None, pageId = None, reason = None, oldImage = None):
-        #get a delete token
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'delete'})['query']['pages']['1']['deletetoken']
-        except KeyError as keyError:
-            if keyError.message == 'deletetoken':
-                raise APIError, 'You may not delete.'
-            else:
-                raise keyError
-
-        #delete the page
-        values = {'action':'delete', 'token':token}
+        values = {'action':'delete', 'token':self.getEditToken()}
 
         if title != None:
             values['title'] = title
@@ -344,15 +334,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def protect(self, title, protections = {}, expiries = {}, reason = '', cascade = False):
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'protect'})['query']['pages']['1']['protecttoken']
-        except KeyError as keyError:
-            if keyError.message == 'protecttoken':
-                raise APIError, 'You may not protect.'
-            else:
-                raise keyError
-
-        values = {'action':'protect', 'title':title, 'token':token}
+        values = {'action':'protect', 'title':title, 'token':self.getEditToken()}
 
         if 'edit' not in protections.keys():
             protections['edit'] = 'all'
@@ -378,15 +360,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def block(self, user, reason = None, expiry = 'infinite', noCreate = True, noEmail = False, autoBlock = True, anonOnly = False):
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'block'})['query']['pages']['1']['blocktoken']
-        except KeyError as keyError:
-            if keyError.message == 'blocktoken':
-                raise APIError, 'You may not block.'
-            else:
-                raise keyError
-
-        values = {'action':'block', 'user':user, 'expiry':expiry, 'token':token}
+        values = {'action':'block', 'user':user, 'expiry':expiry, 'token':self.getEditToken()}
         if noCreate == True:
             values['nocreate'] = ''
 
@@ -427,15 +401,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def move(self, to, _from = '', fromid = '', reason = '', movetalk = False, movesubpages = False, noredirect = False):
-        try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'move'})['query']['pages']['1']['movetoken']
-        except KeyError as keyError:
-            if keyError.message == 'movetoken':
-                raise APIError, 'You may not move.'
-            else:
-                raise keyError
-
-        values = {'action':'move', 'to':to, 'token':token}
+        values = {'action':'move', 'to':to, 'token':self.getEditToken()}
 
         if _from != '':
             values['from'] = _from
