@@ -63,7 +63,7 @@ class MediaWikiClient:
 
     def listToString(self, items):
         """Takes a list, outputs it as a pipe-separated string. The list should be convertable to a set and each of the list's elements should be convertable to a string."""
-        items = sorted(list(set(items))) #remove duplicates
+        items = sorted(list(set(items))) #remove duplicates and sort
         out = ''
         for item in items:
             try:
