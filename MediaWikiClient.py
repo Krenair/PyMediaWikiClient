@@ -40,6 +40,10 @@ class MediaWikiClient:
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
         values['format'] = 'json'
+        for key, value in values.items():
+            if value.__class__ == list:
+                values[key] = self.listToString(value)
+
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
         if self.cookieInfo is not None:
@@ -57,13 +61,11 @@ class MediaWikiClient:
             else:
                 raise valueError
 
-    def listToString(self, list):
-        """Takes a list, outputs it as a pipe-separated string. Each of the list's elements should be convertable to a string."""
-        if list.__class__ == str:
-            return list
-
+    def listToString(self, items):
+        """Takes a list, outputs it as a pipe-separated string. The list should be convertable to a set and each of the list's elements should be convertable to a string."""
+        items = sorted(list(set(items))) #remove duplicates
         out = ''
-        for item in list:
+        for item in items:
             try:
                 item = str(item)
             except:
@@ -73,8 +75,8 @@ class MediaWikiClient:
         return out[:-1]
 
     def getUserInfo(self):
-        properties = ['blockinfo', 'hasmsg', 'groups', 'implicitgroups', 'rights', 'changeablegroups', 'editcount', 'ratelimits', 'email', 'registrationdate']
-        self.userInfo = self.query(meta = ['userinfo'], extraParams = {'uiprop':self.listToString(properties)})['query']['userinfo']
+        properties = ['blockinfo', 'changeablegroups', 'editcount', 'email', 'groups', 'hasmsg', 'implicitgroups', 'ratelimits', 'registrationdate', 'rights']
+        self.userInfo = self.query(meta = ['userinfo'], extraParams = {'uiprop':properties})['query']['userinfo']
         return self.userInfo
 
     def login(self, username, password):
@@ -107,19 +109,19 @@ class MediaWikiClient:
         else:
             raise Exception, 'Not logged in.'
 
-    def query(self, titles = [], pageIds = [], revIds = [], list = [], meta = [], generator = '', redirects = True, convertTitles = False, indexPageIds = False, export = False, exportNoWrap = False, iwUrl = False, extraParams = {}):
+    def query(self, titles = [], pageIds = [], revIds = [], _list = [], meta = [], generator = '', redirects = True, convertTitles = False, indexPageIds = False, export = False, exportNoWrap = False, iwUrl = False, extraParams = {}):
         #TODO: Add some methods to allow a better way of interacting with the query module.
         values = {'action':'query'}
         if titles != []:
-            values['titles'] = self.listToString(titles)
+            values['titles'] = titles
         elif pageIds != []:
-            values['pageids'] = self.listToString(pageIds)
+            values['pageids'] = pageIds
         elif revIds != []:
-            values['revids'] = self.listToString(revIds)
-        elif list != []:
-            values['list'] = self.listToString(list)
+            values['revids'] = revIds
+        elif _list != []:
+            values['list'] = _list
         elif meta != []:
-            values['meta'] = self.listToString(meta)
+            values['meta'] = meta
 
         for key, value in extraParams.items():
             values[key] = value
@@ -153,7 +155,7 @@ class MediaWikiClient:
             return self.editToken
 
         try:
-            self.editToken = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages']['1']['edittoken']
+            self.editToken = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'edit'})['query']['pages'].values()[0]['edittoken']
             return self.editToken
         except KeyError as keyError:
             if keyError.message == 'edittoken':
@@ -172,7 +174,7 @@ class MediaWikiClient:
         return self.apiRequest(values)
 
     def parse(self, title = 'API', text = '', summary = '', page = '', pageId = '', redirects = False, oldId = None, prop = 'text|langlinks|categories|links|templates|images|externallinks|sections|revid|displaytitle', pst = False, onlyPst = False, useLang = None, section = '', disablePP = False):
-        values = {'action':'parse', 'title':title, 'text':text, 'summary':summary, 'prop':self.listToString(prop)}
+        values = {'action':'parse', 'title':title, 'text':text, 'summary':summary, 'prop':prop}
 
         if page != '':
             values['page'] = page
@@ -214,16 +216,16 @@ class MediaWikiClient:
         elif len(namespaces) <= 50:
             raise Exception, 'Maximum number of values 50 (500 for bots)'
 
-        return self.apiRequest({'action':'opensearch', 'search':search, 'limit':limit, 'namespace':self.listToString(namespaces)})
+        return self.apiRequest({'action':'opensearch', 'search':search, 'limit':limit, 'namespace':namespaces})
 
     def feedContributions(self, user, feedFormat = 'rss', namespaces = [0], year = datetime.datetime.now().year, month = datetime.datetime.now().month, tagFilter = [], deletedOnly = False, topOnly = False, showSizeDiff = False):
         if feedFormat not in ['rss', 'atom']:
             raise Exception, 'Bad feedFormat: ' + feedFormat
 
-        values = {'action':'feedcontributions', 'feedformat':feedFormat, 'user':user, 'namespace':self.listToString(namespaces), 'year':year, 'month':month}
+        values = {'action':'feedcontributions', 'feedformat':feedFormat, 'user':user, 'namespace':namespaces, 'year':year, 'month':month}
 
         if tagFilter != []:
-            values['tagfilter'] = self.listToString(tagFilter)
+            values['tagfilter'] = tagFilter
 
         if deletedOnly:
             values['deletedonly'] = ''
@@ -266,10 +268,10 @@ class MediaWikiClient:
         values = {'action':'paraminfo'}
 
         if modules is not []:
-            values['modules'] = self.listToString(modules)
+            values['modules'] = modules
 
         if queryModules is not []:
-            values['querymodules'] = self.listToString(queryModules)
+            values['querymodules'] = queryModules
 
         if mainModule:
             values['mainmodule'] = ''
@@ -286,7 +288,7 @@ class MediaWikiClient:
         return self.apiRequest({'action':'compare', 'fromtitle':fromTitle, 'fromrev':'fromRevision', 'totitle':toTitle, 'torev':toRevision})
 
     def purge(self, titles):
-        return self.apiRequest({'action':'purge', 'titles':self.listToString(titles)})
+        return self.apiRequest({'action':'purge', 'titles':titles})
 
     def rollback(self, title, user, summary = '', markBot = False):
         try:
@@ -329,7 +331,7 @@ class MediaWikiClient:
         values = {'action':'undelete', 'title':title, 'reason':reason, 'watchlist':watchList, 'token':self.getEditToken()}
 
         if timestamps != []:
-            values['timestamps'] = self.listToString(timestamps)
+            values['timestamps'] = timestamps
 
         return self.apiRequest(values)
 
@@ -388,7 +390,7 @@ class MediaWikiClient:
             raise Exception, 'You need to specify _id or user'
 
         try:
-            values['token'] = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'unblock'})['query']['pages']['1']['unblocktoken']
+            values['token'] = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'unblock'})['query']['pages'].values()[0]['unblocktoken']
         except KeyError as keyError:
             if keyError.message == 'unblocktoken':
                 raise APIError, 'You may not unblock.'
@@ -508,7 +510,7 @@ class MediaWikiClient:
 
     def watch(self, title, unWatch = False):
         try:
-            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'watch'})['query']['pages']['1']['watchtoken']
+            token = self.query(titles = 'Main Page', extraParams = {'prop':'info', 'intoken':'watch'})['query']['pages'].values()[0]['watchtoken']
         except KeyError as keyError:
             if keyError.message == 'watchtoken':
                 raise APIError, 'You need to log in.'
@@ -524,7 +526,7 @@ class MediaWikiClient:
 
     def patrol(self, rcid):
         try:
-            token = self.query(list = 'recentchanges', extraParams = {'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
+            token = self.query(_list = 'recentchanges', extraParams = {'rctoken':'patrol', 'rclimit':'1'})['query']['recentchanges'][0]['patroltoken']
         except KeyError as keyError:
             if keyError.message == 'patroltoken':
                 raise APIError, 'You may not patrol.'
@@ -539,14 +541,14 @@ class MediaWikiClient:
 
     def userRights(self, user, add = [], remove = [], reason = None):
         try:
-            token = self.query(list = 'users', extraParams = {'ususers':user, 'ustoken':'userrights'})['query']['users'][0]['userrightstoken']
+            token = self.query(_list = 'users', extraParams = {'ususers':user, 'ustoken':'userrights'})['query']['users'][0]['userrightstoken']
         except KeyError as keyError:
             if keyError.message == 'userrightstoken':
                 raise APIError, 'You may not change user rights.'
             else:
                 raise keyError
 
-        headers = {'action':'userrights', 'user':user, 'add':self.listToString(add), 'remove':self.listToString(remove), 'token':token}
+        headers = {'action':'userrights', 'user':user, 'add':add, 'remove':remove, 'token':token}
 
         if reason is not None:
             headers['reason'] = reason
