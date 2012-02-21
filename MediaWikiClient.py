@@ -35,7 +35,10 @@ class MediaWikiClient:
         self.cookieInfo = None
         self.isLoggedIn = False
         self.getUserInfo()
-        self.getEditToken(cached = False)
+        try:
+            self.getEditToken(cached = False)
+        except:
+            pass
 
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
