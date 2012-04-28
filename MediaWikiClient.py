@@ -1,3 +1,4 @@
+from cookielib import CookieJar
 from StringIO import StringIO
 import datetime
 import gzip
@@ -14,11 +15,11 @@ class MediaWikiClient:
             apiUrl = 'http://' + apiUrl #append http:// if it's not there already
 
         if 'api.php' in apiUrl:
-            apiUrl = apiUrl
+            pass
         elif apiUrl[-1:] == '/':
-            apiUrl = apiUrl + 'api.php'
+            apiUrl += 'api.php'
         else:
-            apiUrl = apiUrl + '/api.php'
+            apiUrl += '/api.php'
 
         response = urllib2.urlopen(urllib2.Request(apiUrl))
         if response.getcode() == 200:
@@ -32,7 +33,8 @@ class MediaWikiClient:
             pipe.close()
 
         self.userAgent = userAgent
-        self.cookieInfo = None
+        self.cookieJar = CookieJar()
+        urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookieJar)))
         self.isLoggedIn = False
         self.getUserInfo()
         try:
@@ -43,14 +45,14 @@ class MediaWikiClient:
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
         values['format'] = 'json'
+        if 'maxlag' not in values:
+            values['maxlag'] = '5'
         for key, value in values.items():
             if value.__class__ == list:
                 values[key] = self.listToString(value)
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        if self.cookieInfo is not None:
-            headers['Cookie'] = self.cookieInfo
         response = urllib2.urlopen(urllib2.Request(self.apiUrl + urlExtras, urllib.urlencode(values), headers))
         if response.info().get('Content-Encoding') == 'gzip':
             data = gzip.GzipFile(fileobj=StringIO(response.read())).read()
@@ -83,24 +85,17 @@ class MediaWikiClient:
         return self.userInfo
 
     def login(self, username, password):
-        self.username = username
         #get login token
-        result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password, 'format':'json'})
-        self.cookieInfo = result['login']['cookieprefix'] + '_session=' + result['login']['sessionid']
+        result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password})
         if result['login']['result'] == 'NeedToken':
             #confirm login token
-            result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password, 'format':'json', 'lgtoken':result['login']['token']})
+            result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password, 'lgtoken':result['login']['token']})
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
                 self.getEditToken(cached = False)
                 self.isLoggedIn = True
             else:
-                raise APIError, (result, 'tokensent')
-        elif result['result'] == 'Success':
-            self.getUserInfo()
-            self.getEditToken(cached = False)
-            self.isLoggedIn = True
-            return
+                raise APIError, result
         else:
             raise APIError, result
 
@@ -287,8 +282,13 @@ class MediaWikiClient:
     def rsd(self):
         return self.apiRequest({'action':'rsd'})
 
-    def compare(self, fromTitle, fromRevision, toTitle, toRevision):
-        return self.apiRequest({'action':'compare', 'fromtitle':fromTitle, 'fromrev':'fromRevision', 'totitle':toTitle, 'torev':toRevision})
+    def compare(self, fromTitle = '', fromRevision = '', fromId = '', toTitle = '', toRevision = '', toId = ''):
+        if fromTitle == '' and fromRevision == '' and fromId == '':
+            raise Exception, 'You must supply fromTitle, fromRevision, or fromId.'
+        elif toTitle == '' and toRevision == '' and toId == '':
+            raise Exception, 'You must supply toTitle, toRevision, or toId.'
+
+        return self.apiRequest({'action':'compare', 'fromtitle':fromTitle, 'fromrev':fromRevision, 'fromid':fromId, 'totitle':toTitle, 'torev':toRevision, 'toid':toId})
 
     def purge(self, titles):
         return self.apiRequest({'action':'purge', 'titles':titles})
@@ -429,11 +429,11 @@ class MediaWikiClient:
 
         return self.apiRequest(values)
 
-    def edit(self, title, text, section = None, summary = '', minor = False, notMinor = False, bot = False, baseTimestamp = None, startTimestamp = None, recreate = False, createOnly = False, noCreate = False, watchList = 'preferences', md5 = '', captchaId = None, captchaWord = None, undo = '', undoAfter = False):
+    def edit(self, title, text = '', section = None, summary = '', minor = False, notMinor = False, bot = False, baseTimestamp = None, startTimestamp = None, recreate = False, createOnly = False, noCreate = False, watchList = 'preferences', md5 = '', captchaId = None, captchaWord = None, undo = '', undoAfter = False):
         if watchList not in ['watch', 'unwatch', 'preferences', 'nochange']:
             raise Exception, 'watchList must be watch, unwatch, preferences or nochange.'
 
-        values = {'action':'edit', 'title':title, 'text':text, 'watchlist':watchList, 'token':self.getEditToken()}
+        values = {'action':'edit', 'title':title, 'watchlist':watchList, 'token':self.getEditToken()}
 
         if section != None:
             values['section'] = section
