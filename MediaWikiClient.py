@@ -4,22 +4,31 @@ import gzip, json, os, urllib, urllib2
 
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
-    def __init__(self, apiUrl, userAgent = '', cookieJar = CookieJar()):
-        if 'http://' not in apiUrl:
-            apiUrl = 'http://' + apiUrl #append http:// if it's not there already
+    def __init__(self, url, userAgent = '', cookieJar = CookieJar(), maxlag = 5):
+        if 'http://' not in url and 'https://' not in url:
+            url = 'http://' + url #append http:// if it's not there already
 
-        if 'api.php' in apiUrl:
-            pass
-        elif apiUrl[-1:] == '/':
-            apiUrl += 'api.php'
+        if 'api.php' in url:
+            apiUrl = url
+            indexUrl = url[:-7] + 'index.php'
+        elif 'index.php' in url:
+            indexUrl = url
+            apiUrl = url[:-9] + 'api.php'
+        elif url[-1:] == '/':
+            indexUrl = url + 'index.php'
+            apiUrl = url + 'api.php'
         else:
-            apiUrl += '/api.php'
+            indexUrl = url + '/index.php'
+            apiUrl = url + '/api.php'
 
-        response = urllib2.urlopen(urllib2.Request(apiUrl))
-        if response.getcode() == 200:
+        try:
+            response = urllib2.urlopen(urllib2.Request(apiUrl))
             self.apiUrl = apiUrl
-        else:
-            raise Exception, 'Response to request for URL ' + request.geturl() + ': ' + response.getcode()
+            response = urllib2.urlopen(urllib2.Request(indexUrl))
+            self.indexUrl = indexUrl
+        except urllib2.HTTPError as e:
+            e.msg += ' - URL: ' + e.geturl()
+            raise e
 
         if userAgent == '':
             pipe = os.popen('git log --pretty=format:"%H"')
@@ -28,6 +37,7 @@ class MediaWikiClient:
 
         self.userAgent = userAgent
         self.cookieJar = cookieJar
+        self.maxlagDefault = maxlag
         urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookieJar)))
         self.isLoggedIn = False
         self.getUserInfo()
@@ -40,7 +50,7 @@ class MediaWikiClient:
         """Handles all requests to MediaWiki"""
         values['format'] = 'json'
         if 'maxlag' not in values:
-            values['maxlag'] = '5'
+            values['maxlag'] = self.maxlagDefault
         for key, value in values.items():
             if value.__class__ == list:
                 values[key] = self.listToString(value)
@@ -53,12 +63,17 @@ class MediaWikiClient:
         else:
             data = response.read()
         try:
-            return json.loads(data)
+            result = json.loads(data)
         except ValueError as valueError:
             if valueError.message == 'No JSON object could be decoded':
-                return data
+                result = data
             else:
                 raise valueError
+
+        if 'error' in result and result['error']['code'] == 'maxlag':
+            raise APIError, result['error']['info']
+        else:
+            return result
 
     def listToString(self, items):
         """Takes a list, outputs it as a pipe-separated string. The list should be convertable to a set and each of the list's elements should be convertable to a string."""
@@ -117,6 +132,14 @@ class MediaWikiClient:
                 raise APIError, 'You may not edit.'
             else:
                 raise keyError
+
+    def fetchPageContents(self, page):
+        response = urllib2.urlopen(urllib2.Request("http://www.mediawiki.org/w/index.php", urllib.urlencode({'action':'raw', 'title':page}), {'Accept-Encoding':'gzip', 'User-Agent':self.userAgent}))
+
+        if response.info().get('Content-Encoding') == 'gzip':
+            return gzip.GzipFile(fileobj=StringIO(response.read())).read()
+        else:
+            return response.read()
 
 class APIError(Exception):
     #Base class for exceptions in this module
