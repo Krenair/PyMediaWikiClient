@@ -1,19 +1,36 @@
-# This script creates pages across most Wikimedia wikis.
-# I might add some preferences (language, skin, signature) support once https://gerrit.wikimedia.org/r/#/c/5126/ has been deployed.
+# This script creates pages and changes preferences across most Wikimedia wikis.
+# The preferences bit won't work until https://gerrit.wikimedia.org/r/#/c/5126/ has been deployed.
 
 username = 'Krenair'
 password = 'example'
-title = 'User:Krenair/common.js'
-text = "mw.loader.load('//meta.wikimedia.org/w/index.php?title=User:Krenair/global.js&action=raw&ctype=text/javascript');"
+
+edit = True
+#title = 'User:Krenair/common.js'
+#text = "mw.loader.load('//meta.wikimedia.org/w/index.php?title=User:Krenair/global.js&action=raw&ctype=text/javascript');"
+title = 'User:Krenair'
+text = '{{#ifeq:{{CONTENTLANGUAGE}}|en|{{#babel:en-N}}|{{#babel:{{CONTENTLANGUAGE}}-0}}}}[[File:Redirectltr.png|#REDIRECT|link=]]<span class="redirectText" id="softredirect">[[:w:en:User:Krenair|See my user page on the English Wikipedia]]</span><br /><span style="font-size:85%; padding-left:52px;">This page is a [[w:en:Wikipedia:Soft redirect|soft redirect]].</span>'
 minor = True
-summary = 'Global JavaScript.'
-excludeWikis = ['enwiki', 'mediawikiwiki', 'metawiki']
+summary = 'Global user page.'
+excludeWikis = ['enwiki', 'mediawikiwiki']
+
+preferences = False
+skin = 'vector'
+#language = 'en'
+language = None
+signature = None
+#signature = '[[User:Krenair|<span style="color: orange; font-weight: bold;">Krenair</span>]] <sup>([[User talk:Krenair|talk]] &bull; [[Special:Contributions/Krenair|contribs]])</sup>'
 
 # Do not modify anything below here unless you know what you are doing.
 
+import sys
+
+if not edit and not preferences:
+    print 'You must set edit or preferences to True.'
+    sys.exit(0)
+
 from cookielib import CookieJar
 from MediaWikiClient import MediaWikiClient
-import time, sys
+import time
 
 metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php')
 
@@ -47,6 +64,9 @@ accountMergedWikis = []
 for mergedAccount in metawikiclient.apiRequest({'action':'query', 'meta':'globaluserinfo', 'guiuser':username, 'guiprop':'merged'})['query']['globaluserinfo']['merged']:
     accountMergedWikis.append(mergedAccount['wiki'])
 
+#wikis = [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}]
+#accountMergedWikis = ['localtest']
+
 for wiki in wikis:
     if wiki['dbname'] in excludeWikis: #If the wiki has been specified as excluded, skip.
         print wiki['dbname'] + ": Skipped because of exclusion."
@@ -62,7 +82,21 @@ for wiki in wikis:
     if mwc.userInfo['name'] != username: #If we're already logged in, for example when our cookie has been given by en.wikipedia.org but is valid for *.wikipedia.org, don't log in again.
         mwc.login(username, password)
 
-    print wiki['dbname'] + ":", mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor})
+    if edit:
+        print wiki['dbname'] + ":", mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor})
+
+    if preferences:
+        preferencestoken = mwc.getEditToken()
+        if signature: #Skin should always be handled separately because it's almost always going to contain pipe characters.
+            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'signature', 'optionvalue':signature})
+
+        if skin and language: #If we're changing skin and language, do it in one request.
+            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'change':'language=' + language + '|skin=' + skin})
+        elif skin: #Otherwise, handle them separately.
+            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'skin', 'optionvalue':skin})
+        elif language:
+            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'language', 'optionvalue':language})
+
     try:
         time.sleep(5)
     except KeyboardInterrupt:
