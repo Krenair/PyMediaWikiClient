@@ -70,8 +70,8 @@ class MediaWikiClient:
             else:
                 raise valueError
 
-        if 'error' in result and result['error']['code'] == 'maxlag':
-            raise APIError, result['error']['info']
+        if 'error' in result:
+            raise APIError, result['error']
         else:
             return result
 
