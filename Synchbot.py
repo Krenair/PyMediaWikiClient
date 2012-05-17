@@ -1,10 +1,12 @@
 # This script creates pages and changes preferences across most Wikimedia wikis.
-# The preferences bit won't work until https://gerrit.wikimedia.org/r/#/c/5126/ has been deployed.
+# The preferences bit won't work unless https://gerrit.wikimedia.org/r/#/c/5126/ has been deployed.
+# As of this message being written (17th May 2012), it has been deployed to all projects except Wikipedia.
+# The English wikipedia is due to get it on Monday the 21st, and all the others on Wednesday the 23rd.
 
 username = 'Krenair'
 password = 'example'
 
-edit = True
+edit = False
 #title = 'User:Krenair/common.js'
 #text = "mw.loader.load('//meta.wikimedia.org/w/index.php?title=User:Krenair/global.js&action=raw&ctype=text/javascript');"
 title = 'User:Krenair'
@@ -13,12 +15,11 @@ minor = True
 summary = 'Global user page.'
 excludeWikis = ['enwiki', 'mediawikiwiki']
 
-preferences = False
+preferences = True
 skin = 'vector'
-#language = 'en'
-language = None
-signature = None
-#signature = '[[User:Krenair|<span style="color: orange; font-weight: bold;">Krenair</span>]] <sup>([[User talk:Krenair|talk]] &bull; [[Special:Contributions/Krenair|contribs]])</sup>'
+language = 'en-GB'
+signature = '[[User:Krenair|<span style="color: orange; font-weight: bold;">Krenair</span>]] <sup>([[User talk:Krenair|talk]] &bull; [[Special:Contributions/Krenair|contribs]])</sup>'
+htmlSignature = True
 
 # Do not modify anything below here unless you know what you are doing.
 
@@ -30,17 +31,19 @@ if not edit and not preferences:
 
 from cookielib import CookieJar
 from MediaWikiClient import MediaWikiClient
-import time
+from MediaWikiClient import APIError
+import time, traceback
 
-metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php')
+metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgent = "Krenair's Synchbot")
 
 def getAllNormalWikis():
+    #return [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}] # For testing.
     wikis = []
     for id, langorspecial in metawikiclient.apiRequest({'action':'sitematrix'})['sitematrix'].items():
         if id == 'count':
             continue
         elif id == 'specials':
-            pass #Most special wikis are chapters or test wikis, so we add the relevant ones manually
+            pass # Most special wikis are chapters or test wikis, so we add the relevant ones manually
             #for site in langorspecial:
                 #wikis.append(site)
         elif id != 'specials':
@@ -64,41 +67,64 @@ accountMergedWikis = []
 for mergedAccount in metawikiclient.apiRequest({'action':'query', 'meta':'globaluserinfo', 'guiuser':username, 'guiprop':'merged'})['query']['globaluserinfo']['merged']:
     accountMergedWikis.append(mergedAccount['wiki'])
 
-#wikis = [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}]
-#accountMergedWikis = ['localtest']
+#accountMergedWikis = ['localtest'] # For testing.
+
+wikisToWorkOn = []
 
 for wiki in wikis:
-    if wiki['dbname'] in excludeWikis: #If the wiki has been specified as excluded, skip.
-        print wiki['dbname'] + ": Skipped because of exclusion."
+    if wiki['dbname'] in excludeWikis: # If the wiki has been specified as excluded, skip.
+        print wiki['dbname'] + ': Skipped because of exclusion.'
         continue
-    elif 'closed' in wiki or 'private' in wiki: #If the wiki is closed or private, skip.
+    elif 'closed' in wiki or 'private' in wiki: # If the wiki is closed or private, skip.
         continue
-    elif wiki['dbname'] not in accountMergedWikis: #If the account is not merged on this wiki, skip.
-        print wiki['dbname'] + ": Skipped because the account is not merged on this wiki."
+    elif wiki['dbname'] not in accountMergedWikis: # If the account is not merged on this wiki, skip.
+        print wiki['dbname'] + ': Skipped because the account is not merged on this wiki.'
         continue
 
-    mwc = MediaWikiClient(wiki['url'] + '/w/api.php', userAgent = "Krenair's Synchbot", cookieJar = CJ)
+    wikisToWorkOn.append(wiki)
 
-    if mwc.userInfo['name'] != username: #If we're already logged in, for example when our cookie has been given by en.wikipedia.org but is valid for *.wikipedia.org, don't log in again.
-        mwc.login(username, password)
+wikiCount = 0
+for wiki in wikisToWorkOn:
+    wikiCount += 1
+    sys.stdout.write(wiki['dbname'] + ' (' + str(wikiCount) + '/' + str(len(wikisToWorkOn)) + '): ') # Output information about what wiki we're on.
+    try:
+        mwc = MediaWikiClient(wiki['url'] + '/w/api.php', userAgent = "Krenair's Synchbot", cookieJar = CJ)
 
-    if edit:
-        print wiki['dbname'] + ":", mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor})
+        if mwc.userInfo['name'] != username: # If we're already logged in, for example when our cookie has been given by en.wikipedia.org but is valid for *.wikipedia.org, don't log in again.
+            mwc.login(username, password)
 
-    if preferences:
-        preferencestoken = mwc.getEditToken()
-        if signature: #Skin should always be handled separately because it's almost always going to contain pipe characters.
-            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'signature', 'optionvalue':signature})
+        if edit:
+            print mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor})
 
-        if skin and language: #If we're changing skin and language, do it in one request.
-            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'change':'language=' + language + '|skin=' + skin})
-        elif skin: #Otherwise, handle them separately.
-            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'skin', 'optionvalue':skin})
-        elif language:
-            print wiki['dbname'] + ':', mwc.apiRequest({'action':'options', 'token':preferencestoken, 'optionname':'language', 'optionvalue':language})
+        if preferences:
+            try:
+                request = {'action':'options', 'token':mwc.getEditToken(), 'change':''}
+
+                if signature:
+                    request['optionname'] = 'nickname'
+                    request['optionvalue'] = signature
+
+                if htmlSignature:
+                    request['change'] += 'fancysig=1|'
+
+                if skin:
+                    request['change'] += 'skin=' + skin + '|'
+
+                if language:
+                    request['change'] += 'language=' + language + '|'
+
+                request['change'] = request['change'][:-1] # Strip extra pipe character.
+
+                print mwc.apiRequest(request)
+            except APIError as e:
+                if e.message['code'] == 'unknown_action':
+                    print 'Wiki does not have action=options yet.'
+    except: # Print exception as if nothing has happened.
+        type, instance, message = sys.exc_info()
+        traceback.print_exception(type, instance, message)
 
     try:
         time.sleep(5)
     except KeyboardInterrupt:
         print ''
-        sys.exit(0) #Die non-violently if interrupted while not doing anything.
+        sys.exit(0) # Die non-violently if interrupted while not doing anything.

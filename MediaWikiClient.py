@@ -24,7 +24,7 @@ class MediaWikiClient:
         try:
             response = urllib2.urlopen(urllib2.Request(apiUrl))
             self.apiUrl = apiUrl
-            response = urllib2.urlopen(urllib2.Request(indexUrl))
+            #response = urllib2.urlopen(urllib2.Request(indexUrl))
             self.indexUrl = indexUrl
         except urllib2.HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()
