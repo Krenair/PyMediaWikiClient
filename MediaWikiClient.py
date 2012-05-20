@@ -24,7 +24,7 @@ class MediaWikiClient:
         try:
             response = urllib2.urlopen(urllib2.Request(apiUrl))
             self.apiUrl = apiUrl
-            #response = urllib2.urlopen(urllib2.Request(indexUrl))
+            response = urllib2.urlopen(urllib2.Request(indexUrl))
             self.indexUrl = indexUrl
         except urllib2.HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()
@@ -74,6 +74,16 @@ class MediaWikiClient:
             raise APIError, result['error']
         else:
             return result
+
+    def indexRequest(self, values, headers = {}, urlExtras = ''):
+        headers['Accept-Encoding'] = 'gzip'
+        headers['User-Agent'] = self.userAgent
+        response = urllib2.urlopen(urllib2.Request(self.indexUrl + urlExtras, urllib.urlencode(values), headers))
+
+        if response.info().get('Content-Encoding') == 'gzip':
+            return gzip.GzipFile(fileobj=StringIO(response.read())).read()
+        else:
+            return response.read()
 
     def listToString(self, items):
         """Takes a list, outputs it as a pipe-separated string. The list should be convertable to a set and each of the list's elements should be convertable to a string."""
@@ -134,12 +144,7 @@ class MediaWikiClient:
                 raise keyError
 
     def fetchPageContents(self, page):
-        response = urllib2.urlopen(urllib2.Request("http://www.mediawiki.org/w/index.php", urllib.urlencode({'action':'raw', 'title':page}), {'Accept-Encoding':'gzip', 'User-Agent':self.userAgent}))
-
-        if response.info().get('Content-Encoding') == 'gzip':
-            return gzip.GzipFile(fileobj=StringIO(response.read())).read()
-        else:
-            return response.read()
+        return self.indexRequest({'action':'raw', 'title':page})
 
 class APIError(Exception):
     #Base class for exceptions in this module
