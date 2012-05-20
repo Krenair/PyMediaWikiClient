@@ -49,8 +49,10 @@ class MediaWikiClient:
     def apiRequest(self, values, headers = {}, urlExtras = ''):
         """Handles all requests to MediaWiki"""
         values['format'] = 'json'
+
         if 'maxlag' not in values:
             values['maxlag'] = self.maxlagDefault
+
         for key, value in values.items():
             if value.__class__ == list:
                 values[key] = self.listToString(value)
@@ -58,10 +60,12 @@ class MediaWikiClient:
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
         response = urllib2.urlopen(urllib2.Request(self.apiUrl + urlExtras, urllib.urlencode(values), headers))
+
         if response.info().get('Content-Encoding') == 'gzip':
             data = gzip.GzipFile(fileobj=StringIO(response.read())).read()
         else:
             data = response.read()
+
         try:
             result = json.loads(data)
         except ValueError as valueError:
