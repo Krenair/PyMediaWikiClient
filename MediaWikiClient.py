@@ -1,12 +1,30 @@
-from cookielib import CookieJar
-from StringIO import StringIO
-import gzip, json, os, urllib, urllib2
+import gzip, json, os
+try: # Python 3
+    from http.cookiejar import CookieJar
+    from io import StringIO
+    from urllib.parse import urlencode
+    from urllib.error import HTTPError
+    from urllib.request import urlopen
+    from urllib.request import build_opener
+    from urllib.request import install_opener
+    from urllib.request import Request
+    from urllib.request import HTTPCookieProcessor
+except ImportError: # Python 2
+    from cookielib import CookieJar
+    from StringIO import StringIO
+    from urllib import urlencode
+    from urllib2 import HTTPError
+    from urllib2 import urlopen
+    from urllib2 import build_opener
+    from urllib2 import install_opener
+    from urllib2 import Request
+    from urllib2 import HTTPCookieProcessor
 
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
     def __init__(self, url, userAgent = '', cookieJar = CookieJar(), maxlag = 5):
         if 'http://' not in url and 'https://' not in url:
-            url = 'http://' + url #append http:// if it's not there already
+            url = 'http://' + url # Append http:// if it's not there already.
 
         if 'api.php' in url:
             apiUrl = url
@@ -22,11 +40,11 @@ class MediaWikiClient:
             apiUrl = url + '/api.php'
 
         try:
-            response = urllib2.urlopen(urllib2.Request(apiUrl))
+            response = urlopen(Request(apiUrl))
             self.apiUrl = apiUrl
-            response = urllib2.urlopen(urllib2.Request(indexUrl))
+            response = urlopen(Request(indexUrl))
             self.indexUrl = indexUrl
-        except urllib2.HTTPError as e:
+        except HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()
             raise e
 
@@ -38,7 +56,7 @@ class MediaWikiClient:
         self.userAgent = userAgent
         self.cookieJar = cookieJar
         self.maxlagDefault = maxlag
-        urllib2.install_opener(urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookieJar)))
+        install_opener(build_opener(HTTPCookieProcessor(self.cookieJar)))
         self.isLoggedIn = False
         self.getUserInfo()
         try:
@@ -53,13 +71,13 @@ class MediaWikiClient:
         if 'maxlag' not in values:
             values['maxlag'] = self.maxlagDefault
 
-        for key, value in values.items():
+        for key, value in list(values.items()):
             if value.__class__ == list:
                 values[key] = self.listToString(value)
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urllib2.urlopen(urllib2.Request(self.apiUrl + urlExtras, urllib.urlencode(values), headers))
+        response = urlopen(Request(self.apiUrl + urlExtras, urlencode(values), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
             data = gzip.GzipFile(fileobj=StringIO(response.read())).read()
@@ -75,14 +93,14 @@ class MediaWikiClient:
                 raise valueError
 
         if 'error' in result:
-            raise APIError, result['error']
+            raise APIError(result['error'])
         else:
             return result
 
     def indexRequest(self, values, headers = {}, urlExtras = ''):
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urllib2.urlopen(urllib2.Request(self.indexUrl + urlExtras, urllib.urlencode(values), headers))
+        response = urlopen(Request(self.indexUrl + urlExtras, urlencode(values), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
             return gzip.GzipFile(fileobj=StringIO(response.read())).read()
@@ -97,7 +115,7 @@ class MediaWikiClient:
             try:
                 item = str(item)
             except:
-                raise Exception, 'Item was not able to be converted to a string'
+                raise Exception('Item was not able to be converted to a string')
             out += (item + '|')
 
         return out[:-1]
@@ -120,9 +138,9 @@ class MediaWikiClient:
                 self.getEditToken(cached = False)
                 self.isLoggedIn = True
             else:
-                raise APIError, result
+                raise APIError(result)
         else:
-            raise APIError, result
+            raise APIError(result)
 
     def logout(self):
         """Logs you out."""
@@ -131,7 +149,7 @@ class MediaWikiClient:
             self.getUserInfo()
             self.getEditToken(cached = False)
         else:
-            raise Exception, 'Not logged in.'
+            raise Exception('Not logged in.')
 
     def getEditToken(self, cached = True):
         """Gets your edit token."""
@@ -139,11 +157,12 @@ class MediaWikiClient:
             return self.editToken
 
         try:
-            self.editToken = self.apiRequest({'action':'query', 'titles':'Main Page', 'prop':'info', 'intoken':'edit'})['query']['pages'].values()[0]['edittoken']
+            self.editToken = list(self.apiRequest({'action':'query', 'titles':'Main Page', 'prop':'info', 'intoken':'edit'})['query']['pages'].values())[0]['edittoken']
+            #self.editToken = self.apiRequest({'action':'tokens', 'type':'edit'})['tokens']['edittoken']
             return self.editToken
         except KeyError as keyError:
             if keyError.message == 'edittoken':
-                raise APIError, 'You may not edit.'
+                raise APIError('You may not edit.')
             else:
                 raise keyError
 
