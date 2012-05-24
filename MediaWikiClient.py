@@ -42,7 +42,7 @@ class MediaWikiClient:
         try:
             response = urlopen(Request(apiUrl))
             self.apiUrl = apiUrl
-            response = urlopen(Request(indexUrl))
+            #response = urlopen(Request(indexUrl))
             self.indexUrl = indexUrl
         except HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()

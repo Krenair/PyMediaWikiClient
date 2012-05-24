@@ -1,7 +1,5 @@
 # This script creates pages and changes preferences across most Wikimedia wikis.
-# The preferences bit won't work unless https://gerrit.wikimedia.org/r/#/c/5126/ has been deployed.
-# As of this message being written (17th May 2012), it has been deployed to all projects except Wikipedia.
-# The English wikipedia is due to get it on Monday the 21st, and all the others on Wednesday the 23rd.
+# The preference part will not work unless the wiki supports action=options, first supported on WMF wikis since the deployment of 1.20wmf3.
 
 username = 'Krenair'
 password = 'example'
