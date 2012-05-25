@@ -39,19 +39,19 @@ class MediaWikiClient:
             indexUrl = url + '/index.php'
             apiUrl = url + '/api.php'
 
-        try:
-            response = urlopen(Request(apiUrl))
-            self.apiUrl = apiUrl
-            #response = urlopen(Request(indexUrl))
-            self.indexUrl = indexUrl
-        except HTTPError as e:
-            e.msg += ' - URL: ' + e.geturl()
-            raise e
-
         if userAgent == '':
             pipe = os.popen('git log --pretty=format:"%H"')
             userAgent = 'PyMediaWikiClient/git/' + pipe.readline().strip()
             pipe.close()
+
+        try:
+            response = urlopen(Request(apiUrl, '', {'User-Agent':userAgent}))
+            self.apiUrl = apiUrl
+            response = urlopen(Request(indexUrl, '', {'User-Agent':userAgent}))
+            self.indexUrl = indexUrl
+        except HTTPError as e:
+            e.msg += ' - URL: ' + e.geturl()
+            raise e
 
         self.userAgent = userAgent
         self.cookieJar = cookieJar
