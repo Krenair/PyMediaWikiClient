@@ -118,6 +118,7 @@ for wiki in wikisToWorkOn:
                 if e.message['code'] == 'unknown_action':
                     print 'Wiki does not have action=options yet.'
     except: # Print exception as if nothing has happened.
+        print ''
         type, instance, message = sys.exc_info()
         traceback.print_exception(type, instance, message)
 
