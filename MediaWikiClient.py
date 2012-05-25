@@ -45,9 +45,14 @@ class MediaWikiClient:
             pipe.close()
 
         try:
-            response = urlopen(Request(apiUrl, '', {'User-Agent':userAgent}))
+            request = Request(apiUrl, '', {'User-Agent':userAgent})
+            request.get_method = lambda: 'HEAD'
+            urlopen(request)
             self.apiUrl = apiUrl
-            response = urlopen(Request(indexUrl, '', {'User-Agent':userAgent}))
+
+            request = Request(indexUrl, '', {'User-Agent':userAgent})
+            request.get_method = lambda: 'HEAD'
+            urlopen(request)
             self.indexUrl = indexUrl
         except HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()
