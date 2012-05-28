@@ -4,21 +4,12 @@ try: # Python 3
     from io import StringIO
     from urllib.parse import urlencode
     from urllib.error import HTTPError
-    from urllib.request import urlopen
-    from urllib.request import build_opener
-    from urllib.request import install_opener
-    from urllib.request import Request
-    from urllib.request import HTTPCookieProcessor
+    from urllib.request import urlopen, build_opener, install_opener, Request, HTTPCookieProcessor
 except ImportError: # Python 2
     from cookielib import CookieJar
     from StringIO import StringIO
     from urllib import urlencode
-    from urllib2 import HTTPError
-    from urllib2 import urlopen
-    from urllib2 import build_opener
-    from urllib2 import install_opener
-    from urllib2 import Request
-    from urllib2 import HTTPCookieProcessor
+    from urllib2 import HTTPError, urlopen, build_opener, install_opener, Request, HTTPCookieProcessor
 
 class MediaWikiClient:
     """MediaWiki API client by Krenair"""
