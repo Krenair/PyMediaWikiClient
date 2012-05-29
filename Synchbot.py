@@ -28,8 +28,7 @@ if not edit and not preferences:
     sys.exit(0)
 
 from cookielib import CookieJar
-from MediaWikiClient import MediaWikiClient
-from MediaWikiClient import APIError
+from MediaWikiClient import MediaWikiClient, APIError
 import time, traceback
 
 metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgent = "Krenair's Synchbot")
