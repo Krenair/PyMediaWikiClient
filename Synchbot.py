@@ -27,9 +27,9 @@ if not edit and not preferences:
     print('You must set edit or preferences to True.')
     sys.exit(0)
 
-try:
+try: # Python 2
     from cookielib import CookieJar
-except ImportError:
+except ImportError: # Python 3
     from http.cookiejar import CookieJar
 from MediaWikiClient import MediaWikiClient, APIError
 import time, traceback
@@ -97,28 +97,23 @@ for wiki in wikisToWorkOn:
             print(mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor}))
 
         if preferences:
-            try:
-                request = {'action':'options', 'token':mwc.getEditToken(), 'change':''}
+            request = {'action':'options', 'token':mwc.getEditToken(), 'change':''}
 
-                if signature:
-                    request['optionname'] = 'nickname'
-                    request['optionvalue'] = signature
+            if signature:
+                request['optionname'] = 'nickname'
+                request['optionvalue'] = signature
 
-                if htmlSignature:
-                    request['change'] += 'fancysig=1|'
+            if htmlSignature:
+                request['change'] += 'fancysig=1|'
 
-                if skin:
-                    request['change'] += 'skin=' + skin + '|'
+            if skin:
+                request['change'] += 'skin=' + skin + '|'
 
-                if language:
-                    request['change'] += 'language=' + language + '|'
+            if language:
+                request['change'] += 'language=' + language + '|'
 
-                request['change'] = request['change'][:-1] # Strip extra pipe character.
-
-                print(mwc.apiRequest(request))
-            except APIError as e:
-                if e.message['code'] == 'unknown_action':
-                    print('Wiki does not have action=options yet.')
+            request['change'] = request['change'][:-1] # Strip extra pipe character.
+            print(mwc.apiRequest(request))
     except: # Print exception as if nothing has happened.
         print('')
         type, instance, message = sys.exc_info()
