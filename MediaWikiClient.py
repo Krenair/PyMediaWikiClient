@@ -1,13 +1,13 @@
 import gzip, json, os
 try: # Python 3
     from http.cookiejar import CookieJar
-    from io import StringIO
+    from io import BytesIO as IO
     from urllib.parse import urlencode
     from urllib.error import HTTPError
     from urllib.request import urlopen, build_opener, install_opener, Request, HTTPCookieProcessor
 except ImportError: # Python 2
     from cookielib import CookieJar
-    from StringIO import StringIO
+    from StringIO import StringIO as IO
     from urllib import urlencode
     from urllib2 import HTTPError, urlopen, build_opener, install_opener, Request, HTTPCookieProcessor
 
@@ -36,12 +36,12 @@ class MediaWikiClient:
             pipe.close()
 
         try:
-            request = Request(apiUrl, '', {'User-Agent':userAgent})
+            request = Request(apiUrl, ''.encode('utf-8'), {'User-Agent':userAgent})
             request.get_method = lambda: 'HEAD'
             urlopen(request)
             self.apiUrl = apiUrl
 
-            request = Request(indexUrl, '', {'User-Agent':userAgent})
+            request = Request(indexUrl, ''.encode('utf-8'), {'User-Agent':userAgent})
             request.get_method = lambda: 'HEAD'
             urlopen(request)
             self.indexUrl = indexUrl
@@ -60,8 +60,27 @@ class MediaWikiClient:
         except:
             pass
 
-    def apiRequest(self, values, headers = {}, urlExtras = ''):
+    def apiRequest(self, *args, **kwargs):
         """Handles all requests to MediaWiki"""
+        if len(args) > 0 and args[0].__class__ == dict:
+            values = args[0]
+        else:
+            values = {}
+
+        for k, v in kwargs.items():
+            if k == 'headers':
+                headers = v
+            elif k == 'urlExtras':
+                urlExtras = v
+            else:
+                values[k] = v
+
+        if 'headers' not in locals().keys():
+            headers = {}
+
+        if 'urlExtras' not in locals().keys():
+            urlExtras = ''
+
         values['format'] = 'json'
 
         if 'maxlag' not in values:
@@ -73,15 +92,15 @@ class MediaWikiClient:
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urlopen(Request(self.apiUrl + urlExtras, urlencode(values), headers))
+        response = urlopen(Request(self.apiUrl + urlExtras, urlencode(values).encode('utf-8'), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
-            data = gzip.GzipFile(fileobj=StringIO(response.read())).read()
+            data = gzip.GzipFile(fileobj = IO(response.read())).read()
         else:
             data = response.read()
 
         try:
-            result = json.loads(data)
+            result = json.loads(data.decode('utf-8'))
         except ValueError as valueError:
             if valueError.message == 'No JSON object could be decoded':
                 result = data
@@ -93,13 +112,33 @@ class MediaWikiClient:
         else:
             return result
 
-    def indexRequest(self, values, headers = {}, urlExtras = ''):
+    def indexRequest(self, *args, **kwargs):
+        """Handles index.php requests to MediaWiki"""
+        if len(args) > 0 and args[0].__class__ == dict:
+            values = args[0]
+        else:
+            values = {}
+
+        for k, v in kwargs.items():
+            if k == 'headers':
+                headers = v
+            elif k == 'urlExtras':
+                urlExtras = v
+            else:
+                values[k] = v
+
+        if 'headers' not in locals().keys():
+            headers = {}
+
+        if 'urlExtras' not in locals().keys():
+            urlExtras = ''
+
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urlopen(Request(self.indexUrl + urlExtras, urlencode(values), headers))
+        response = urlopen(Request(self.indexUrl + urlExtras, urlencode(values).encode('utf-8'), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
-            return gzip.GzipFile(fileobj=StringIO(response.read())).read()
+            return gzip.GzipFile(fileobj = IO(response.read())).read()
         else:
             return response.read()
 
