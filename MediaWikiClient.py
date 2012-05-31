@@ -158,16 +158,16 @@ class MediaWikiClient:
     def getUserInfo(self):
         """Gets information about you."""
         properties = ['blockinfo', 'changeablegroups', 'editcount', 'email', 'groups', 'hasmsg', 'implicitgroups', 'ratelimits', 'registrationdate', 'rights']
-        self.userInfo = self.apiRequest({'action':'query', 'meta':'userinfo', 'uiprop':properties})['query']['userinfo']
+        self.userInfo = self.apiRequest(action = 'query', meta = 'userinfo', uiprop = properties)['query']['userinfo']
         return self.userInfo
 
     def login(self, username, password):
         """Logs you in."""
         #get login token
-        result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password})
+        result = self.apiRequest(action = 'login', lgname = username, lgpassword = password)
         if result['login']['result'] == 'NeedToken':
             #confirm login token
-            result = self.apiRequest({'action':'login', 'lgname':username, 'lgpassword':password, 'lgtoken':result['login']['token']})
+            result = self.apiRequest(action = 'login', lgname = username, lgpassword = password, lgtoken = result['login']['token'])
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
                 self.getEditToken(cached = False)
@@ -180,7 +180,7 @@ class MediaWikiClient:
     def logout(self):
         """Logs you out."""
         if self.isLoggedIn:
-            self.apiRequest({'action':'logout'})
+            self.apiRequest(action = 'logout')
             self.getUserInfo()
             self.getEditToken(cached = False)
         else:
@@ -192,7 +192,7 @@ class MediaWikiClient:
             return self.editToken
 
         try:
-            self.editToken = list(self.apiRequest({'action':'query', 'titles':'Main Page', 'prop':'info', 'intoken':'edit'})['query']['pages'].values())[0]['edittoken']
+            self.editToken = list(self.apiRequest(action = 'query', titles = 'Main Page', prop = 'info', intoken = 'edit')['query']['pages'].values())[0]['edittoken']
             #self.editToken = self.apiRequest({'action':'tokens', 'type':'edit'})['tokens']['edittoken']
             return self.editToken
         except KeyError as keyError:
@@ -202,7 +202,7 @@ class MediaWikiClient:
                 raise keyError
 
     def fetchPageContents(self, page):
-        return self.indexRequest({'action':'raw', 'title':page})
+        return self.indexRequest(action = 'raw', title = page)
 
 class APIError(Exception):
     #Base class for exceptions in this module

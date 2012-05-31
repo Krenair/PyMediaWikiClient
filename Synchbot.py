@@ -40,7 +40,7 @@ metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgen
 def getAllNormalWikis():
     #return [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}] # For testing.
     wikis = []
-    for id, langorspecial in list(metawikiclient.apiRequest({'action':'sitematrix'})['sitematrix'].items()):
+    for id, langorspecial in list(metawikiclient.apiRequest(action = 'sitematrix')['sitematrix'].items()):
         if id == 'count':
             continue
         elif id == 'specials':
@@ -65,7 +65,7 @@ CJ = CookieJar()
 
 accountMergedWikis = []
 
-for mergedAccount in metawikiclient.apiRequest({'action':'query', 'meta':'globaluserinfo', 'guiuser':username, 'guiprop':'merged'})['query']['globaluserinfo']['merged']:
+for mergedAccount in metawikiclient.apiRequest(action = 'query', meta = 'globaluserinfo', guiuser = username, guiprop = 'merged')['query']['globaluserinfo']['merged']:
     accountMergedWikis.append(mergedAccount['wiki'])
 
 #accountMergedWikis = ['localtest'] # For testing.
@@ -95,7 +95,7 @@ for wiki in wikisToWorkOn:
             mwc.login(username, password)
 
         if edit:
-            print(mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor}))
+            print(mwc.apiRequest(action = 'edit', token = mwc.getEditToken(), title = title, text = text, summary = summary, minor = minor))
 
         if preferences:
             request = {'action':'options', 'token':mwc.getEditToken(), 'change':''}
