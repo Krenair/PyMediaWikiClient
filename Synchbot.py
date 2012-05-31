@@ -31,7 +31,8 @@ try: # Python 2
     from cookielib import CookieJar
 except ImportError: # Python 3
     from http.cookiejar import CookieJar
-from MediaWikiClient import MediaWikiClient, APIError
+
+from MediaWikiClient import MediaWikiClient
 import time, traceback
 
 metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgent = "Krenair's Synchbot")
