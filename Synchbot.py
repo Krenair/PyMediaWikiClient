@@ -24,10 +24,13 @@ htmlSignature = True
 import sys
 
 if not edit and not preferences:
-    print 'You must set edit or preferences to True.'
+    print('You must set edit or preferences to True.')
     sys.exit(0)
 
-from cookielib import CookieJar
+try:
+    from cookielib import CookieJar
+except ImportError:
+    from http.cookiejar import CookieJar
 from MediaWikiClient import MediaWikiClient, APIError
 import time, traceback
 
@@ -36,14 +39,14 @@ metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgen
 def getAllNormalWikis():
     #return [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}] # For testing.
     wikis = []
-    for id, langorspecial in metawikiclient.apiRequest({'action':'sitematrix'})['sitematrix'].items():
+    for id, langorspecial in list(metawikiclient.apiRequest({'action':'sitematrix'})['sitematrix'].items()):
         if id == 'count':
             continue
         elif id == 'specials':
             pass # Most special wikis are chapters or test wikis, so we add the relevant ones manually
             #for site in langorspecial:
                 #wikis.append(site)
-        elif id != 'specials':
+        else:
             for site in langorspecial['site']:
                 wikis.append(site)
     wikis.append({'url':'http://beta.wikiversity.org', 'code':'betawikiversity', 'dbname':'betawikiversity'})
@@ -70,12 +73,12 @@ wikisToWorkOn = []
 
 for wiki in wikis:
     if wiki['dbname'] in excludeWikis: # If the wiki has been specified as excluded, skip.
-        print wiki['dbname'] + ': Skipped because of exclusion.'
+        print(wiki['dbname'] + ': Skipped because of exclusion.')
         continue
     elif 'closed' in wiki or 'private' in wiki: # If the wiki is closed or private, skip.
         continue
     elif wiki['dbname'] not in accountMergedWikis: # If the account is not merged on this wiki, skip.
-        print wiki['dbname'] + ': Skipped because the account is not merged on this wiki.'
+        print(wiki['dbname'] + ': Skipped because the account is not merged on this wiki.')
         continue
 
     wikisToWorkOn.append(wiki)
@@ -91,7 +94,7 @@ for wiki in wikisToWorkOn:
             mwc.login(username, password)
 
         if edit:
-            print mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor})
+            print(mwc.apiRequest({'action':'edit', 'token':mwc.getEditToken(), 'title':title, 'text':text, 'summary':summary, 'minor':minor}))
 
         if preferences:
             try:
@@ -112,17 +115,17 @@ for wiki in wikisToWorkOn:
 
                 request['change'] = request['change'][:-1] # Strip extra pipe character.
 
-                print mwc.apiRequest(request)
+                print(mwc.apiRequest(request))
             except APIError as e:
                 if e.message['code'] == 'unknown_action':
-                    print 'Wiki does not have action=options yet.'
+                    print('Wiki does not have action=options yet.')
     except: # Print exception as if nothing has happened.
-        print ''
+        print('')
         type, instance, message = sys.exc_info()
         traceback.print_exception(type, instance, message)
 
     try:
         time.sleep(5)
     except KeyboardInterrupt:
-        print ''
+        print('')
         sys.exit(0) # Die non-violently if interrupted while not doing anything.
