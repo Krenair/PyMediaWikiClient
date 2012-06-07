@@ -31,8 +31,8 @@ class MediaWikiClient:
             apiUrl = url + '/api.php'
 
         if userAgent == '':
-            pipe = os.popen('git log --pretty=format:"%H"')
-            userAgent = 'PyMediaWikiClient/git/' + pipe.readline().strip()
+            pipe = os.popen('git log -n 1 --pretty=format:"%H"')
+            userAgent = 'PyMediaWikiClient/git/' + pipe.read()
             pipe.close()
 
         try:
