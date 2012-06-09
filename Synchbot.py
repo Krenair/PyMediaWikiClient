@@ -18,6 +18,8 @@ skin = 'vector'
 language = 'en-GB'
 signature = '[[User:Krenair|<span style="color: orange; font-weight: bold;">Krenair</span>]] <sup>([[User talk:Krenair|talk]] &bull; [[Special:Contributions/Krenair|contribs]])</sup>'
 htmlSignature = True
+dateFormat = 'dmy' # "default" - no preference, "dmy" - 12:52, 9 June 2012, "mdy" - 12:52, June 9, 2012, "ymd" - 12:52, 2012 June 9, or "ISO 8601" - 2012-06-09T12:52:54
+timeCorrectionOther = '+01:00' # Some value in the same format as '+01:00'
 
 # Do not modify anything below here unless you know what you are doing.
 
@@ -38,7 +40,7 @@ import time, traceback
 metawikiclient = MediaWikiClient('http://meta.wikimedia.org/w/api.php', userAgent = "Krenair's Synchbot")
 
 def getAllNormalWikis():
-    #return [{'url':'http://localhost/MediaWiki/TestWikis/DevTest/api.php', 'dbname':'localtest'}] # For testing.
+    #return [{'url':'http://localhost/MediaWiki/Git/core/api.php', 'dbname':'localtest'}] # For testing.
     wikis = []
     for id, langorspecial in list(metawikiclient.apiRequest(action = 'sitematrix')['sitematrix'].items()):
         if id == 'count':
@@ -112,6 +114,12 @@ for wiki in wikisToWorkOn:
 
             if language:
                 request['change'] += 'language=' + language + '|'
+
+            if dateFormat:
+                request['change'] += 'date=' + dateFormat + '|'
+
+            if timeCorrectionOther:
+                request['change'] += 'timecorrection-other=' + timeCorrectionOther + '|'
 
             request['change'] = request['change'][:-1] # Strip extra pipe character.
             print(mwc.apiRequest(request))
