@@ -130,6 +130,8 @@ for wiki in wikisToWorkOn:
 
     try:
         time.sleep(5)
+        if wikiCount == 5 and edit:
+            time.sleep(20)
     except KeyboardInterrupt:
         print('')
         sys.exit(0) # Die non-violently if interrupted while not doing anything.
