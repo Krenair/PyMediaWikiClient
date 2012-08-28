@@ -18,31 +18,18 @@ class MediaWikiClient:
             url = 'http://' + url # Append http:// if it's not there already.
 
         if 'api.php' in url:
-            scriptPath = url[:-7]
+            self.scriptPath = url[:-7]
         elif 'index.php' in url:
-            scriptPath = url[:-9]
+            self.scriptPath = url[:-9]
         elif url[-1:] == '/':
-            scriptPath = url
+            self.scriptPath = url
         else:
-            scriptPath = url + '/'
+            self.scriptPath = url + '/'
 
         if userAgent == '':
             pipe = os.popen('git log -n 1 --pretty=format:"%H"')
             userAgent = 'PyMediaWikiClient/git/' + pipe.read()
             pipe.close()
-
-        try:
-            request = Request(scriptPath + 'api.php', ''.encode('utf-8'), {'User-Agent':userAgent})
-            request.get_method = lambda: 'HEAD'
-            urlopen(request)
-
-            request = Request(scriptPath + 'index.php', ''.encode('utf-8'), {'User-Agent':userAgent})
-            request.get_method = lambda: 'HEAD'
-            urlopen(request)
-            self.scriptPath = scriptPath
-        except HTTPError as e:
-            e.msg += ' - URL: ' + e.geturl()
-            raise e
 
         self.userAgent = userAgent
         self.cookieJar = cookieJar
@@ -62,6 +49,9 @@ class MediaWikiClient:
         else:
             values = {}
 
+        headers = {}
+        urlExtras = ''
+
         for k, v in kwargs.items():
             if k == 'headers':
                 headers = v
@@ -69,12 +59,6 @@ class MediaWikiClient:
                 urlExtras = v
             else:
                 values[k] = v
-
-        if 'headers' not in locals().keys():
-            headers = {}
-
-        if 'urlExtras' not in locals().keys():
-            urlExtras = ''
 
         values['format'] = 'json'
 
@@ -114,6 +98,9 @@ class MediaWikiClient:
         else:
             values = {}
 
+        headers = {}
+        urlExtras = ''
+
         for k, v in kwargs.items():
             if k == 'headers':
                 headers = v
@@ -121,12 +108,6 @@ class MediaWikiClient:
                 urlExtras = v
             else:
                 values[k] = v
-
-        if 'headers' not in locals().keys():
-            headers = {}
-
-        if 'urlExtras' not in locals().keys():
-            urlExtras = ''
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
@@ -188,7 +169,7 @@ class MediaWikiClient:
 
         try:
             self.editToken = list(self.apiRequest(action = 'query', titles = 'Main Page', prop = 'info', intoken = 'edit')['query']['pages'].values())[0]['edittoken']
-            #self.editToken = self.apiRequest({'action':'tokens', 'type':'edit'})['tokens']['edittoken']
+            #self.editToken = self.apiRequest({'action': 'tokens', 'type': 'edit'})['tokens']['edittoken']
             return self.editToken
         except KeyError as keyError:
             if keyError.message == 'edittoken':
