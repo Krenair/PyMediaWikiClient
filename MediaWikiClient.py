@@ -18,17 +18,13 @@ class MediaWikiClient:
             url = 'http://' + url # Append http:// if it's not there already.
 
         if 'api.php' in url:
-            apiUrl = url
-            indexUrl = url[:-7] + 'index.php'
+            scriptPath = url[:-7]
         elif 'index.php' in url:
-            indexUrl = url
-            apiUrl = url[:-9] + 'api.php'
+            scriptPath = url[:-9]
         elif url[-1:] == '/':
-            indexUrl = url + 'index.php'
-            apiUrl = url + 'api.php'
+            scriptPath = url
         else:
-            indexUrl = url + '/index.php'
-            apiUrl = url + '/api.php'
+            scriptPath = url + '/'
 
         if userAgent == '':
             pipe = os.popen('git log -n 1 --pretty=format:"%H"')
@@ -36,15 +32,14 @@ class MediaWikiClient:
             pipe.close()
 
         try:
-            request = Request(apiUrl, ''.encode('utf-8'), {'User-Agent':userAgent})
+            request = Request(scriptPath + 'api.php', ''.encode('utf-8'), {'User-Agent':userAgent})
             request.get_method = lambda: 'HEAD'
             urlopen(request)
-            self.apiUrl = apiUrl
 
-            request = Request(indexUrl, ''.encode('utf-8'), {'User-Agent':userAgent})
+            request = Request(scriptPath + 'index.php', ''.encode('utf-8'), {'User-Agent':userAgent})
             request.get_method = lambda: 'HEAD'
             urlopen(request)
-            self.indexUrl = indexUrl
+            self.scriptPath = scriptPath
         except HTTPError as e:
             e.msg += ' - URL: ' + e.geturl()
             raise e
@@ -92,7 +87,7 @@ class MediaWikiClient:
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urlopen(Request(self.apiUrl + urlExtras, urlencode(values).encode('utf-8'), headers))
+        response = urlopen(Request(self.scriptPath + 'api.php' + urlExtras, urlencode(values).encode('utf-8'), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
             data = gzip.GzipFile(fileobj = IO(response.read())).read()
@@ -135,7 +130,7 @@ class MediaWikiClient:
 
         headers['Accept-Encoding'] = 'gzip'
         headers['User-Agent'] = self.userAgent
-        response = urlopen(Request(self.indexUrl + urlExtras, urlencode(values).encode('utf-8'), headers))
+        response = urlopen(Request(self.scriptPath + 'index.php' + urlExtras, urlencode(values).encode('utf-8'), headers))
 
         if response.info().get('Content-Encoding') == 'gzip':
             return gzip.GzipFile(fileobj = IO(response.read())).read()
