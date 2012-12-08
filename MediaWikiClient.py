@@ -86,7 +86,7 @@ class MediaWikiClient:
             else:
                 raise valueError
 
-        if 'error' in result:
+        if isinstance(result, dict) and 'error' in result.keys():
             raise APIError(result['error'])
         else:
             return result
