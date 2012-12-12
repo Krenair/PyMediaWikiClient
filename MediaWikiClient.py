@@ -36,9 +36,10 @@ class MediaWikiClient:
         self.maxlagDefault = maxlag
         install_opener(build_opener(HTTPCookieProcessor(self.cookieJar)))
         self.isLoggedIn = False
+        self.tokens = {}
         self.getUserInfo()
         try:
-            self.getEditToken(cached = False)
+            self.getToken(name = 'edit', cached = False)
         except:
             pass
 
@@ -146,7 +147,7 @@ class MediaWikiClient:
             result = self.apiRequest(action = 'login', lgname = username, lgpassword = password, lgtoken = result['login']['token'])
             if result['login']['result'] == 'Success':
                 self.getUserInfo()
-                self.getEditToken(cached = False)
+                self.getToken(name = 'edit', cached = False)
                 self.isLoggedIn = True
             else:
                 raise APIError(result)
@@ -158,24 +159,17 @@ class MediaWikiClient:
         if self.isLoggedIn:
             self.apiRequest(action = 'logout')
             self.getUserInfo()
-            self.getEditToken(cached = False)
+            self.getToken(name = 'edit', cached = False)
         else:
             raise Exception('Not logged in.')
 
-    def getEditToken(self, cached = True):
-        """Gets your edit token."""
-        if 'editToken' in dir(self) and cached:
-            return self.editToken
+    def getToken(self, name = 'edit', cached = True):
+        """Gets tokens."""
+        if name in self.tokens and cached:
+            return self.tokens[name]
 
-        try:
-            self.editToken = list(self.apiRequest(action = 'query', titles = 'Main Page', prop = 'info', intoken = 'edit')['query']['pages'].values())[0]['edittoken']
-            #self.editToken = self.apiRequest({'action': 'tokens', 'type': 'edit'})['tokens']['edittoken']
-            return self.editToken
-        except KeyError as keyError:
-            if keyError.message == 'edittoken':
-                raise APIError('You may not edit.')
-            else:
-                raise keyError
+        self.tokens[name] = self.apiRequest({'action': 'tokens', 'type': name})['tokens'][name + 'token']
+        return self.tokens[name]
 
     def fetchPageContents(self, page):
         return self.indexRequest(action = 'raw', title = page)

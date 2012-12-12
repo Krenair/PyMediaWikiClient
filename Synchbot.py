@@ -97,10 +97,10 @@ for wiki in wikisToWorkOn:
             mwc.login(username, password)
 
         if edit:
-            print(mwc.apiRequest(action = 'edit', token = mwc.getEditToken(), title = title, text = text, summary = summary, minor = minor))
+            print(mwc.apiRequest(action = 'edit', token = mwc.getToken(), title = title, text = text, summary = summary, minor = minor))
 
         if preferences:
-            request = {'action':'options', 'token':mwc.getEditToken(), 'change':''}
+            request = {'action':'options', 'token':mwc.getToken(), 'change':''}
 
             if signature:
                 request['optionname'] = 'nickname'
