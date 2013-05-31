@@ -168,7 +168,10 @@ class MediaWikiClient:
         if name in self.tokens and cached:
             return self.tokens[name]
 
-        self.tokens[name] = self.apiRequest({'action': 'tokens', 'type': name})['tokens'][name + 'token']
+        try:
+            self.tokens[name] = self.apiRequest(action = 'tokens', type = name)['tokens'][name + 'token']
+        except APIError:
+            self.tokens[name] = self.apiRequest(action = 'query', titles = 'Main Page', prop = 'info', intoken = name)['query']['pages']['1'][name + 'token']
         return self.tokens[name]
 
     def fetchPageContents(self, page):
