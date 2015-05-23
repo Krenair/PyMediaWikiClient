@@ -27,8 +27,10 @@ class MediaWikiClient:
             self.scriptPath = url + '/'
 
         if userAgent == '':
-            out = subprocess.check_output(["git", "log", "-n 1", '--pretty=format:%H'])
-            userAgent = 'PyMediaWikiClient/git/' + out
+            out = subprocess.Popen(["git", "log", "-n 1", '--pretty=format:%H'], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+            stdout, stderr = out.communicate()
+            if out.returncode == 0:
+                userAgent = 'PyMediaWikiClient/git/' + stdout
 
         self.userAgent = userAgent
         self.cookieJar = cookieJar
