@@ -1,4 +1,4 @@
-import gzip, json, os
+import gzip, json, subprocess
 try: # Python 3
     from http.cookiejar import CookieJar
     from io import BytesIO as IO
@@ -27,9 +27,8 @@ class MediaWikiClient:
             self.scriptPath = url + '/'
 
         if userAgent == '':
-            pipe = os.popen('git log -n 1 --pretty=format:"%H"')
-            userAgent = 'PyMediaWikiClient/git/' + pipe.read()
-            pipe.close()
+            out = subprocess.check_output(["git", "log", "-n 1", '--pretty=format:%H'])
+            userAgent = 'PyMediaWikiClient/git/' + out
 
         self.userAgent = userAgent
         self.cookieJar = cookieJar
